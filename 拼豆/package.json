@@ -1,0 +1,10 @@
+{
+  "name": "pindou-studio",
+  "version": "1.0.0",
+  "private": true,
+  "description": "拼豆图纸生成器：图片 → 像素化 → 相近色合并 → 色卡映射 → 可打印图纸",
+  "scripts": {
+    "test": "node tests/core.test.js",
+    "build": "node tools/build-single.js"
+  }
+}
