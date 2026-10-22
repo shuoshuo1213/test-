@@ -502,7 +502,7 @@
 
       const numW = ctx.measureText(numTxt).width;
       ctx.font = '600 ' + fs + 'px ' + FONT;
-      const codeTxt = p.code + ' ' + p.name;
+      const codeTxt = p.name ? (p.code + ' ' + p.name) : p.code;
       const avail = L.entryW - (s + Math.max(6, L.cell * 0.3) + numW + Math.max(8, L.cell * 0.4) + 6);
       let label = codeTxt;
       if (ctx.measureText(label).width > avail) {

@@ -45,6 +45,32 @@
         <button class="btn small" id="btnOpen2">选择图片</button>
         <button class="btn small ghost" id="btnClear">清空</button>
       </div>
+
+      <div class="bg-box">
+        <label class="check"><input type="checkbox" id="chkRemoveBg"> 去除背景（只留主体）</label>
+        <div class="bg-opts" id="bgOpts" hidden>
+          <div class="field">
+            <label for="selBgMethod">抠图方式</label>
+            <select id="selBgMethod">
+              <option value="local">本地算法（离线 · 适合纯色/简单背景）</option>
+              <option value="rembg">rembg 服务（AI · 需本机启动）</option>
+            </select>
+          </div>
+          <div class="field" id="bgTolField">
+            <label for="bgTolNum">去背景强度</label>
+            <div class="slider-row">
+              <input type="range" id="bgTolRange" min="0" max="100" value="40">
+              <input type="number" id="bgTolNum" class="num-input" min="0" max="100" step="1" value="40" inputmode="numeric" aria-label="去背景强度">
+            </div>
+          </div>
+          <label class="check" id="bgKeepLargestRow"><input type="checkbox" id="chkKeepLargest" checked> 只保留最大主体（去掉零碎小块）</label>
+          <div class="field" id="bgUrlField" hidden>
+            <label for="bgUrl">rembg 服务地址</label>
+            <input type="text" id="bgUrl" value="http://127.0.0.1:7000" spellcheck="false" autocomplete="off">
+          </div>
+          <p class="hint" id="bgHint"></p>
+        </div>
+      </div>
     </section>
 
     <section class="card">
@@ -324,7 +350,9 @@
 
 <script src="js/color.js"></script>
 <script src="js/quantize.js"></script>
+<script src="js/palettes.brands.js"></script>
 <script src="js/palettes.js"></script>
+<script src="js/bgremove.js"></script>
 <script src="js/pattern.js"></script>
 <script src="js/render.js"></script>
 <script src="js/export.js"></script>

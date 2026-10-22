@@ -9,7 +9,9 @@ const { makeCanvas } = require('./canvas-shim');
 
 require(path.join(__dirname, '..', 'js', 'color.js'));
 require(path.join(__dirname, '..', 'js', 'quantize.js'));
+require(path.join(__dirname, '..', 'js', 'palettes.brands.js'));
 require(path.join(__dirname, '..', 'js', 'palettes.js'));
+require(path.join(__dirname, '..', 'js', 'bgremove.js'));
 require(path.join(__dirname, '..', 'js', 'pattern.js'));
 require(path.join(__dirname, '..', 'js', 'render.js'));
 
@@ -18,6 +20,7 @@ const Q = globalThis.PBQuantize;
 const PAL = globalThis.PBPalettes;
 const P = globalThis.PBPattern;
 const R = globalThis.PBRender;
+const Rm = globalThis.PBRemove;
 
 let pass = 0, fail = 0;
 function ok(name, cond, extra) {
@@ -75,6 +78,49 @@ section('色卡');
   const norm = PAL.normalize(csv, '测试');
   eq('归一化', norm.colors.length, 2);
   eq('归一化 name', norm.name, '测试');
+}
+
+/* ---------------- 品牌色卡 ---------------- */
+section('品牌色卡');
+{
+  ok('已加载品牌色卡数据', PAL.isBrandData);
+  eq('色卡套数', PAL.SETS.length, 9);
+
+  const byId = (id) => PAL.SETS.filter((s) => s.id === id)[0];
+  eq('MARD 221 色数', byId('mard221').colors.length, 221);
+  eq('MARD 291 色数', byId('mard291').colors.length, 291);
+  eq('Artkal C197 色数', byId('artkal197').colors.length, 197);
+  eq('Artkal 418 色数', byId('artkal418').colors.length, 418);
+  eq('COCO 291 色数', byId('coco291').colors.length, 291);
+  eq('漫漫 278 色数', byId('manman278').colors.length, 278);
+
+  eq('MARD 首个色号', byId('mard221').colors[0].code, 'A1');
+  eq('MARD 首个色值', byId('mard221').colors[0].hex, '#FAF5CD');
+
+  ok('每套色卡色号唯一', PAL.SETS.every((s) => new Set(s.colors.map((c) => c.code)).size === s.colors.length));
+  ok('每套色卡 HEX 合法', PAL.SETS.every((s) => s.colors.every((c) => /^#[0-9A-F]{6}$/.test(c.hex))));
+  ok('每套色卡都有 RGB', PAL.SETS.every((s) => s.colors.every((c) => typeof c.r === 'number' && c.r >= 0 && c.r <= 255)));
+  ok('每套色卡都有名称', PAL.SETS.every((s) => typeof s.name === 'string' && s.name.length >= 2));
+
+  // 用 MARD 色卡生成图纸：色号必须全部落在 MARD 体系内
+  const mard = byId('mard221');
+  const W2 = 40, H2 = 40;
+  const data2 = new Uint8ClampedArray(W2 * H2 * 4);
+  for (let i = 0; i < W2 * H2; i++) {
+    const o = i * 4;
+    data2[o] = (i * 37) % 256;
+    data2[o + 1] = (i * 91) % 256;
+    data2[o + 2] = (i * 13) % 256;
+    data2[o + 3] = 255;
+  }
+  const mardPat = P.buildPattern({
+    source: { data: data2, width: W2, height: H2 },
+    cols: 20, rows: 20, palette: mard.colors,
+    maxColors: 8, mergeDeltaE: 4, dither: 0, background: 'white'
+  });
+  ok('MARD 图纸色号都在 MARD 色卡内', mardPat.palette.every((p) => mard.colors.some((c) => c.code === p.code)));
+  ok('MARD 图纸颜色数不超上限', mardPat.palette.length <= 8, mardPat.palette.length);
+  eq('MARD 图纸豆量守恒', mardPat.palette.reduce((s, p) => s + p.count, 0), 400);
 }
 
 /* ---------------- 量化 ---------------- */
@@ -202,6 +248,83 @@ section('像素化与色卡映射');
   });
   ok('透明区域留空', holey.total > 0 && holey.total < 100, JSON.stringify({ total: holey.total, empty: holey.empty }));
   eq('豆数 + 空格 = 总格子', holey.total + holey.empty, 100);
+}
+
+/* ---------------- 去背景 ---------------- */
+section('去背景（本地算法）');
+{
+  // 120×120 白底 + 正中红圆
+  const W3 = 120, H3 = 120;
+  const img = { width: W3, height: H3, data: new Uint8ClampedArray(W3 * H3 * 4) };
+  for (let y = 0; y < H3; y++) {
+    for (let x = 0; x < W3; x++) {
+      const o = (y * W3 + x) * 4;
+      const dx = x - 60, dy = y - 60;
+      const inside = dx * dx + dy * dy <= 30 * 30;
+      img.data[o] = inside ? 220 : 250;
+      img.data[o + 1] = inside ? 40 : 250;
+      img.data[o + 2] = inside ? 40 : 250;
+      img.data[o + 3] = 255;
+    }
+  }
+
+  const res = Rm.local(img, { tolerance: 40, keepLargest: true });
+  eq('掩膜像素数', res.mask.length, W3 * H3);
+  eq('角落被去掉', res.mask[0], 0);
+  eq('中心主体保留', res.mask[60 * W3 + 60], 255);
+  ok('去掉比例合理', res.ratio > 0.6 && res.ratio < 0.98, res.ratio.toFixed(3));
+
+  const strict = Rm.local(img, { tolerance: 0, keepLargest: true });
+  eq('强度 0 也能去掉纯白背景', strict.mask[0], 0);
+  ok('强度低时保留得更多或持平', strict.ratio <= res.ratio + 0.02, strict.ratio.toFixed(3));
+
+  // 两个色块：只保留最大主体
+  const W4 = 60, H4 = 60;
+  const img2 = { width: W4, height: H4, data: new Uint8ClampedArray(W4 * H4 * 4) };
+  for (let i = 0; i < W4 * H4; i++) {
+    const o = i * 4;
+    img2.data[o] = 250; img2.data[o + 1] = 250; img2.data[o + 2] = 250; img2.data[o + 3] = 255;
+  }
+  const paint = (cx, cy, r) => {
+    for (let y = 0; y < H4; y++) {
+      for (let x = 0; x < W4; x++) {
+        const dx = x - cx, dy = y - cy;
+        if (dx * dx + dy * dy > r * r) continue;
+        const o = (y * W4 + x) * 4;
+        img2.data[o] = 220; img2.data[o + 1] = 40; img2.data[o + 2] = 40;
+      }
+    }
+  };
+  paint(18, 18, 9);
+  paint(45, 45, 4);
+
+  const two = Rm.local(img2, { tolerance: 40, keepLargest: true });
+  eq('最小的碎块被去掉', two.mask[45 * W4 + 45], 0);
+  eq('最大主体保留', two.mask[18 * W4 + 18], 255);
+
+  const both = Rm.local(img2, { tolerance: 40, keepLargest: false });
+  eq('关掉「只保留主体」后两块都在', both.mask[45 * W4 + 45], 255);
+
+  // 羽化：边界出现过渡值
+  const fm = Rm.feather(Uint8Array.from([0, 0, 255, 255]), 4, 1, 1);
+  eq('羽化左边界', fm[0], 0);
+  eq('羽化过渡 1', fm[1], 85);
+  eq('羽化过渡 2', fm[2], 170);
+  eq('羽化内部', fm[3], 255);
+
+  // 接进生成管线：背景变空格
+  const masked = new Uint8ClampedArray(img.data);
+  for (let i = 0; i < W3 * H3; i++) masked[i * 4 + 3] = res.mask[i];
+  const patBg = P.buildPattern({
+    source: { data: masked, width: W3, height: H3 },
+    cols: 20, rows: 20,
+    palette: PAL.SETS[0].colors,
+    maxColors: 8, mergeDeltaE: 4, dither: 0,
+    background: 'none'
+  });
+  eq('左上角背景格为空', patBg.indices[0], -1);
+  ok('主体仍有豆', patBg.total > 0, patBg.total);
+  ok('空格数量可观', patBg.empty > 0, patBg.empty);
 }
 
 /* ---------------- 渲染 ---------------- */

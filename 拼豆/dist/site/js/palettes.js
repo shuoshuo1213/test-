@@ -148,7 +148,7 @@
     'SV-01'
   ]);
 
-  const SETS = [
+  const GENERIC_SETS = [
     {
       id: 'universal',
       name: '通用 84 色',
@@ -168,6 +168,25 @@
       colors: SOFT
     }
   ];
+
+  /* ---------------- 品牌色卡（js/palettes.brands.js） ---------------- */
+  const brandData = g.PB_BRANDS;
+  const BRAND_SETS = (brandData && Array.isArray(brandData.sets))
+    ? brandData.sets.map((s) => ({
+      id: s.id,
+      name: s.name,
+      desc: s.desc || '',
+      brand: true,
+      colors: (s.colors || []).map(([code, hex]) => {
+        const rgb = C.hexToRgb(hex);
+        if (!rgb) return null;
+        return { code: String(code), name: '', hex: String(hex).toUpperCase(), r: rgb.r, g: rgb.g, b: rgb.b };
+      }).filter(Boolean)
+    })).filter((s) => s.colors.length)
+    : [];
+
+  /** 有品牌数据就用品牌色卡，否则退回内置通用色卡 */
+  const SETS = BRAND_SETS.length ? BRAND_SETS : GENERIC_SETS;
 
   /* ---------------- 自定义色卡（localStorage） ---------------- */
   const STORE_KEY = 'pbg.customPalettes.v1';
@@ -202,7 +221,6 @@
       const rgb = C.hexToRgb(hex);
       if (!rgb) return;
       if (!code) code = 'C' + String(i + 1).padStart(2, '0');
-      if (!name) name = code;
       const norm = C.rgbToHex(rgb.r, rgb.g, rgb.b);
       if (seen.has(norm)) return;
       seen.add(norm);
@@ -238,6 +256,11 @@
 
   g.PBPalettes = {
     SETS,
+    GENERIC_SETS,
+    BRAND_SETS,
+    isBrandData: BRAND_SETS.length > 0,
+    brandSource: (brandData && brandData.source) || '',
+    brandLicense: (brandData && brandData.license) || '',
     UNIVERSAL,
     STARTER,
     SOFT,

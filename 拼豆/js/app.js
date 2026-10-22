@@ -10,6 +10,7 @@
   const R = window.PBRender;
   const PAL = window.PBPalettes;
   const EX = window.PBExport;
+  const RM = window.PBRemove;
 
   const $ = (id) => document.getElementById(id);
   const clamp = (v, lo, hi) => (v < lo ? lo : v > hi ? hi : v);
@@ -21,7 +22,7 @@
     cols: 58,
     rows: 58,
     lockAspect: true,
-    paletteId: 'universal',
+    paletteId: 'mard221',
     maxColors: 16,
     mergeDeltaE: 4,
     dither: 0,
@@ -39,6 +40,11 @@
     beadSize: '5',
     boardCols: 29,
     boardRows: 29,
+    removeBg: false,
+    bgMethod: 'local',
+    bgTolerance: 40,
+    bgKeepLargest: true,
+    bgUrl: 'http://127.0.0.1:7000',
     sheet: {
       cell: 26,
       style: 'plain',
@@ -59,6 +65,10 @@
   const state = {
     source: null,      // {data, width, height}
     sourceCanvas: null,
+    raw: null,         // 原图 RGBA（不被去背景修改）
+    mask: null,        // 去背景掩膜，255=保留
+    maskKey: '',
+    sourceId: 0,
     aspect: 1,
     pattern: null,
     metrics: null,
@@ -129,11 +139,12 @@
     const custom = PAL.loadCustom();
 
     const g1 = document.createElement('optgroup');
-    g1.label = '内置色卡';
+    g1.label = PAL.isBrandData ? '品牌色卡' : '内置色卡';
     builtin.forEach((p) => {
       const o = document.createElement('option');
       o.value = p.id;
       o.textContent = p.name + '（' + p.colors.length + ' 色）';
+      if (p.desc) o.title = p.desc;
       g1.appendChild(o);
     });
     sel.appendChild(g1);
@@ -212,8 +223,12 @@
       return;
     }
 
-    state.source = { data: imgData.data, width: sw, height: sh };
+    state.raw = imgData.data;
+    state.source = { data: state.raw, width: sw, height: sh };
     state.sourceCanvas = canvas;
+    state.sourceId = (state.sourceId || 0) + 1;
+    state.mask = null;
+    state.maskKey = '';
     state.aspect = sw / sh;
     state.imgName = name || '未命名图片';
 
@@ -231,7 +246,116 @@
       settings.rows = Math.max(2, Math.round(settings.cols / state.aspect));
       $('rowsRange').value = String(clamp(settings.rows, 8, 200));
     }
-    rebuild();
+    updateMask();
+  }
+
+  /* ---------------- 去背景 ---------------- */
+  function setStageBusy(on, msg) {
+    const stage = document.querySelector('.stage');
+    if (stage) stage.classList.toggle('busy', !!on);
+    if (on) {
+      $('stagePill').textContent = msg || '处理中…';
+      $('perfInfo').textContent = '';
+    }
+  }
+
+  /** 把掩膜乘进原图 alpha，得到下游要用的像素 */
+  function applyMask() {
+    const src = state.source;
+    if (!src) return;
+    if (!state.mask) { src.data = state.raw; return; }
+    const n = src.width * src.height;
+    const raw = state.raw;
+    const m = state.mask;
+    const out = new Uint8ClampedArray(raw.length);
+    for (let i = 0; i < n; i++) {
+      const o = i * 4;
+      out[o] = raw[o];
+      out[o + 1] = raw[o + 1];
+      out[o + 2] = raw[o + 2];
+      out[o + 3] = (raw[o + 3] * m[i]) / 255;
+    }
+    src.data = out;
+  }
+
+  let maskSeq = 0;
+
+  /** 计算（或复用）掩膜，然后重算图纸 */
+  async function updateMask() {
+    const src = state.source;
+    if (!src || !state.raw) return;
+    const s = settings;
+    const seq = ++maskSeq;
+
+    if (!s.removeBg || !RM) {
+      state.mask = null;
+      state.maskKey = '';
+      src.data = state.raw;
+      rebuild();
+      return;
+    }
+
+    const key = [s.bgMethod, s.bgTolerance, s.bgKeepLargest ? 1 : 0, state.sourceId].join('|');
+    if (state.mask && state.maskKey === key) {
+      applyMask();
+      rebuild();
+      return;
+    }
+
+    setStageBusy(true, s.bgMethod === 'rembg' ? '正在用 rembg 抠图…' : '正在去背景…');
+    try {
+      let res;
+      if (s.bgMethod === 'rembg') {
+        res = await RM.rembg(state.sourceCanvas, s.bgUrl, 90000);
+      } else {
+        res = RM.local(
+          { data: state.raw, width: src.width, height: src.height },
+          { tolerance: s.bgTolerance, keepLargest: s.bgKeepLargest }
+        );
+      }
+      if (seq !== maskSeq) return;
+
+      state.mask = res.mask;
+      state.maskKey = key;
+      applyMask();
+      rebuild();
+      if (res.ratio > 0.94) {
+        toast('抠掉了 ' + Math.round(res.ratio * 100) + '% 的画面，可能抠过头了，把「去背景强度」调小试试', 3600);
+      } else if (res.ratio < 0.02) {
+        toast('几乎没抠掉东西：背景可能太花，试试调大强度或改用 rembg 服务', 3600);
+      }
+    } catch (e) {
+      console.error(e);
+      if (seq !== maskSeq) return;
+      toast('去背景失败：' + e.message, 6000);
+      settings.removeBg = false;
+      $('chkRemoveBg').checked = false;
+      $('bgOpts').hidden = true;
+      state.mask = null;
+      state.maskKey = '';
+      src.data = state.raw;
+      rebuild();
+    } finally {
+      if (seq === maskSeq) setStageBusy(false);
+    }
+  }
+
+  const scheduleMask = debounce(function () {
+    updateMask();
+  }, 320);
+
+  /** 面板联动：只有本地算法才显示强度/只保留主体，rembg 才显示地址 */
+  function syncBgUI() {
+    const on = !!settings.removeBg;
+    $('chkRemoveBg').checked = on;
+    $('bgOpts').hidden = !on;
+    const local = settings.bgMethod !== 'rembg';
+    $('bgTolField').hidden = !local;
+    $('bgKeepLargestRow').hidden = !local;
+    $('bgUrlField').hidden = local;
+    $('bgHint').textContent = local
+      ? '离线算法：从四边往里“吃掉”与背景色相近的区域，适合白底 / 纯色 / 简单渐变；背景越花越不准。'
+      : '需要先在本机启动服务：pip install rembg fastapi uvicorn python-multipart，然后 python tools/rembg_server.py（首次会下载模型）。抠图在你的电脑上完成，图片不上传。';
   }
 
   async function loadFile(file) {
@@ -479,7 +603,7 @@
     bar.innerHTML =
       '<span class="hover-chip"><b class="mono">(' + (h.c + 1) + ', ' + (h.r + 1) + ')</b></span>' +
       '<span class="hover-chip"><span class="sw" style="background:' + p.hex + '"></span>' +
-      '<b class="mono">' + label + '</b> ' + p.code + ' · ' + p.name + '</span>' +
+      '<b class="mono">' + label + '</b> ' + p.code + (p.name ? ' · ' + p.name : '') + '</span>' +
       '<span class="mono muted">' + p.hex + '</span>';
   }
 
@@ -511,11 +635,11 @@
       const btn = document.createElement('button');
       btn.className = 'legend-item' + (state.focus === i ? ' active' : '');
       btn.type = 'button';
-      btn.title = p.code + ' ' + p.name + ' ' + p.hex + ' · ' + p.count + ' 颗';
+      btn.title = p.code + (p.name ? ' ' + p.name : '') + ' ' + p.hex + ' · ' + p.count + ' 颗';
       btn.innerHTML =
         '<span class="sw" style="background:' + p.hex + '"></span>' +
         '<span class="num">' + (settings.numbers === 'sym' ? R.symbolFor(i) : '#' + (i + 1)) + '</span>' +
-        '<span class="name"><small>' + p.code + '</small>' + p.name + '</span>' +
+        '<span class="name">' + (p.name ? '<small>' + p.code + '</small>' + p.name : p.code) + '</span>' +
         '<span class="cnt">' + fmt(p.count) + ' <span class="muted">' + (p.count / total * 100).toFixed(1) + '%</span></span>';
       btn.addEventListener('click', () => {
         state.focus = state.focus === i ? -1 : i;
@@ -654,6 +778,14 @@
     setNum('zoomNum', settings.zoom > 0 ? settings.zoom : '');
     $('selBead').value = String(settings.beadSize);
 
+    // 去背景
+    $('bgTolRange').value = String(clamp(settings.bgTolerance, 0, 100));
+    setNum('bgTolNum', settings.bgTolerance);
+    $('bgUrl').value = settings.bgUrl || 'http://127.0.0.1:7000';
+    $('chkKeepLargest').checked = settings.bgKeepLargest !== false;
+    $('selBgMethod').value = settings.bgMethod === 'rembg' ? 'rembg' : 'local';
+    syncBgUI();
+
     const board = BOARD_FOR_BEAD[String(settings.beadSize)] || 29;
     settings.boardCols = board;
     settings.boardRows = board;
@@ -676,6 +808,9 @@
     $('btnClear').addEventListener('click', () => {
       state.source = null;
       state.sourceCanvas = null;
+      state.raw = null;
+      state.mask = null;
+      state.maskKey = '';
       state.pattern = null;
       state.hover = null;
       state.focus = -1;
@@ -693,6 +828,41 @@
       $('legendCount').textContent = '';
       $('perfInfo').textContent = '';
       updateHoverbar();
+    });
+
+    // 去背景
+    $('chkRemoveBg').addEventListener('change', (e) => {
+      settings.removeBg = e.target.checked;
+      saveSettings();
+      syncBgUI();
+      if (settings.removeBg && settings.background === 'white') {
+        settings.background = 'none';
+        $('selBg').value = 'none';
+        saveSettings();
+        toast('已把「透明区域」改成留空：去掉的部分不排豆', 3000);
+      }
+      updateMask();
+    });
+    $('selBgMethod').addEventListener('change', (e) => {
+      settings.bgMethod = e.target.value === 'rembg' ? 'rembg' : 'local';
+      saveSettings();
+      syncBgUI();
+      updateMask();
+    });
+    $('chkKeepLargest').addEventListener('change', (e) => {
+      settings.bgKeepLargest = e.target.checked;
+      saveSettings();
+      updateMask();
+    });
+    $('bgUrl').addEventListener('change', (e) => {
+      settings.bgUrl = e.target.value.trim() || 'http://127.0.0.1:7000';
+      e.target.value = settings.bgUrl;
+      saveSettings();
+      if (settings.removeBg && settings.bgMethod === 'rembg') updateMask();
+    });
+    wireSliderNumber({
+      rangeId: 'bgTolRange', numId: 'bgTolNum', key: 'bgTolerance',
+      after: () => { if (settings.removeBg) scheduleMask(); }
     });
 
     // 拖放 + 粘贴

@@ -35,6 +35,7 @@
 - 降采样用**面积平均**而不是丢点采样，缩到很小的格子数时颜色也更稳。
 - 快捷键：29 / 58 / 87 / 116（5 mm 豆下 29 颗 ≈ 14.5 cm，正好一块标准拼豆板）。
 - 豆子规格可选 2.6 mm / 5 mm / 10 mm，概览里直接显示成品厘米数。
+- **去除背景（可选）**：勾选后先抠图再像素化，背景不排豆（详见下面「去背景」一节）。
 
 ### 2. 配色（决定像不像、好不好买豆）
 - **最多颜色数**：中位切分给出初值，再在 Lab 空间用 k-means 精修。
@@ -45,10 +46,24 @@
 - **亮度 / 对比度 / 饱和度**：转换前微调，适合补救偏暗的照片。
 
 ### 3. 色卡（决定能不能真的买到豆）
-内置 3 套屏幕参考色卡：**通用 84 色**、**新手 48 色**、**柔和马卡龙 36 色**。
+内置 **9 套真实品牌色卡**，默认 **MARD 221（马得）**：
 
-> ⚠️ 内置 HEX 是屏幕近似值，不同批次/显示器有色差，下单前请对照实体色卡。
-> 买的是别的品牌，就用「导入」把自己那套色卡塞进来，之后所有映射都基于它。
+| 色卡 | 色数 | 说明 |
+|---|---|---|
+| **MARD 221（马得）** | 221 | 马得 5mm 常用色，国内最主流的参考体系 |
+| MARD 291（马得·全色） | 291 | 马得全色版 |
+| Artkal C 197（优肯） | 197 | 优肯 Artkal C 系列 5mm，官方口径 |
+| Artkal M 221（优肯·mini） | 221 | 优肯 Artkal M 系列 2.6mm |
+| Artkal 418（优肯·全量） | 418 | 优肯 C197 + M221 全量 |
+| COCO 291 | 291 | COCO 2.6mm mini |
+| 漫漫 278（漫漫家） | 278 | 漫漫家 5mm |
+| 咪小窝 290 | 290 | 咪小窝 5mm |
+| 盼盼 289（盼盼家） | 289 | 盼盼家 5mm |
+
+- 数据来源：开源项目 [HansBug/pindou-color-data](https://github.com/HansBug/pindou-color-data)（CC BY 4.0），已整理成 `js/palettes.brands.js`。
+- **黄豆豆没有公开的色号数据**（它主要是经销渠道，卖 MARD / COCO 等品牌），所以没有内置；如果你手上那份色卡有色号表，用「导入」加进去即可。
+- ⚠️ HEX 是社区按产品图 / 色卡整理的**近似值**，不是分光测色；不同批次、显示器、光线都有色差，下单前请对照实体色卡。
+- 买的是别的品牌，点「导入」把自己那套色卡（CSV / JSON）加进来，之后所有映射都基于它。
 
 ### 4. 图纸与导出
 - 预览三种样式：彩色豆 / 白底图纸（省墨）/ 彩色 + 编号；数字或符号编号；网格、每 5 格加粗、拼豆板分界线、坐标刻度。
@@ -74,6 +89,39 @@
 所有设置自动存在浏览器 localStorage，下次打开还是上次的参数。
 
 ---
+
+## 去背景
+
+原图卡片里勾选「去除背景」，背景就不排豆了（会自动把「透明区域」改成**留空**，可在配色里改回白底/黑底）。
+
+两种抠图方式：
+
+| 方式 | 原理 | 适合 |
+|---|---|---|
+| **本地算法（默认）** | 纯离线：从四边往里「吃掉」与边缘背景色相近的区域（Lab 色差 + 局部渐变容差），再按需只保留最大主体、边缘羽化 | 白底商品图、证件照、纯色 / 简单渐变背景 |
+| **rembg 服务** | 调用本机运行的 [rembg](https://github.com/danielgatis/rembg)（u2net 模型） | 复杂背景、毛发、半透明物体 |
+
+本地算法可调：**去背景强度**（0–100，越大吃掉的越多）、**只保留最大主体**（去掉零碎小块）。
+抠完如果几乎没变化或抠过头，会弹提示告诉你怎么调。
+
+### 启用 rembg（可选，需要本机 Python）
+
+```powershell
+pip install rembg fastapi uvicorn python-multipart
+python tools/rembg_server.py                # 默认 http://127.0.0.1:7000
+# 换模型 / 换端口：
+python tools/rembg_server.py --model isnet-general-use --port 8000
+```
+
+然后在网页里：原图 → 勾选「去除背景」→ 抠图方式选「rembg 服务」。
+
+- 首次运行会自动下载模型（u2net 约 176 MB），之后离线可用。
+- 建议 Python 3.10–3.12（onnxruntime 对新版本支持滞后）。
+- 图片只在你的电脑与**本机**服务之间传输，不上传云端。
+- 没装环境也没关系：本地算法离线可用；连不上服务时会自动回退并提示。
+
+> rembg 是独立 Python 项目（MIT 许可），本项目通过 `tools/rembg_server.py` 接入，未修改其源码。
+> 单文件版（`dist/拼豆工坊.html`）里只有本地算法；rembg 需要那台机器自己跑服务。
 
 ## 导入自己的色卡
 
@@ -105,18 +153,38 @@ index.html            界面
 css/app.css           样式
 js/color.js           sRGB↔Lab、ΔE2000、亮度、调色、最近色搜索
 js/quantize.js        直方图、加权中位切分、k-means、吸附色卡、相近色合并
-js/palettes.js        内置色卡 + 导入解析（CSV/JSON）
+js/palettes.brands.js 品牌色卡数据（自动生成，9 套 / 2496 色）
+js/palettes.js        色卡装载、通用色卡（离线兜底）、导入解析（CSV/JSON）
+js/bgremove.js        去背景：本地边缘泛洪算法 + rembg 服务客户端
 js/pattern.js         面积平均降采样、抖动、完整生成管线（纯计算，无 DOM）
 js/render.js          预览绘制 + 图纸排版/绘制（分页拼接、刻度、编号、用量表）
 js/export.js          PNG/CSV/JSON 导出、打印
 js/app.js             界面逻辑、状态、localStorage
 tools/build-single.js 打包脚本：合成单文件版 + 静态站点
+tools/rembg_server.py 可选的 rembg 本地服务（FastAPI）
+tools/build-palettes.js   抓取下来的原始数据 → js/palettes.brands.js
+tools/fetch-palettes.html 在浏览器里重新抓取品牌色卡数据（需要联网）
+tools/data/           抓取快照 palettes-brands.json
 dist/                 打包产物（单文件版、站点、给朋友的说明）
-tests/core.test.js    92 项算法与渲染自测（Node，无需浏览器）
+tests/core.test.js    125 项算法与渲染自测（Node，无需浏览器）
 tests/canvas-shim.js  给 Node 用的极简 Canvas 替身
 tests/sheet-preview.html  图纸渲染自检页（浏览器打开看导出效果）
 tests/input-check.html    滑块/数字框联动自检页（浏览器打开看勾选结果）
 ```
+
+## 更新 / 扩充色卡数据
+
+```powershell
+node tools/build-palettes.js      # 读取 tools/data/palettes-brands.json → js/palettes.brands.js
+```
+
+想重新抓一遍上游数据（需要联网）：
+
+1. 在 Chrome 里打开 `tools/fetch-palettes.html`，它会从 GitHub 拉取各品牌色卡并下载 `palettes-brands.json`；
+2. 把下载的文件放到 `tools/data/`；
+3. 跑一次 `node tools/build-palettes.js`。
+
+要加新品牌，编辑 `tools/build-palettes.js` 里的 `WANT` 列表（id / 名称 / 说明）后重跑即可。
 
 ## 分享给别人
 
@@ -128,7 +196,7 @@ node tools/build-single.js      # 或 npm run build
 
 | 产物 | 用途 |
 |---|---|
-| `dist/拼豆工坊.html` | **单文件版**（约 130 KB）。微信/邮件直接发，对方双击用 Chrome / Edge 打开即可，无需安装、无需联网（除首次打开）。 |
+| `dist/拼豆工坊.html` | **单文件版**（约 190 KB）。微信/邮件直接发，对方双击用 Chrome / Edge 打开即可，无需安装、无需联网。 |
 | `dist/site/` | 静态站点（index.html + css/ + js/）。拖到 Netlify Drop、Cloudflare Pages 或 GitHub Pages，就能得到一个链接，手机也能开。 |
 | `dist/使用说明-给朋友.txt` | 给不懂技术的朋友的三步说明，可一起发过去。 |
 
@@ -164,7 +232,14 @@ node tests/core.test.js     # 或 npm test
 
 ## 已知限制 / 下一步
 
-- 内置色卡是屏幕参考值，非品牌官方数据；建议导入自己买的色卡。
+- 品牌色卡的 HEX 是社区按产品图/色卡整理的**近似值**，不是分光测色，同批次也可能有色差；下单前对照实体色卡。
+- 黄豆豆暂无公开色号数据（属经销渠道），需要的话用「导入」加自己的色卡。
 - 没有做「孤点清理」「最大连通区域优化」，极小的高光/噪点偶尔会留下一两颗单豆。
 - 还没做：局部框选重算、一键替换某色、按颜色分文件导出（每种颜色的坐标清单）、
   AI 超分预处理、多图纸拼版。
+
+## 数据来源与许可
+
+- 品牌色卡数据：[HansBug/pindou-color-data](https://github.com/HansBug/pindou-color-data)，**CC BY 4.0**。
+- 色差与交叉映射参考：[bitbead.app](https://www.bitbead.app)（CIEDE2000 实现思路）。
+- 品牌名称与色号归各自厂商所有；本项目与任何厂商无关联。

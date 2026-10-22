@@ -396,6 +396,33 @@ canvas#preview.hidden { display: none; }
 .legend-item .name small { color: var(--muted); font-family: ui-monospace, Consolas, monospace; font-size: 10.5px; margin-right: 4px; }
 .legend-item .cnt { font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
 
+/* 隐藏属性优先于 .check / .field 的 display */
+[hidden] { display: none !important; }
+
+/* 去背景小面板 */
+.bg-box {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--line);
+}
+.bg-opts {
+  margin-top: 8px;
+  padding: 10px 10px 4px;
+  background: var(--bg-soft);
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+}
+.bg-opts .field:last-of-type { margin-bottom: 6px; }
+.bg-opts .hint { margin: 4px 0 6px; }
+
+/* 处理中：预览变淡，避免误以为卡死 */
+.stage.busy .canvas-wrap { opacity: .45; transition: opacity .2s; }
+.stage.busy .stage-head::after {
+  content: '处理中…';
+  color: var(--accent-2);
+  font-size: 12px;
+}
+
 /* ---------------- 弹窗 ---------------- */
 .dialog {
   border: 1px solid var(--line);
