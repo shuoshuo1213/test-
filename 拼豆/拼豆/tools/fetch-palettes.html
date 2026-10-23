@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><title>抓取拼豆品牌色卡</title>
+<style>body{background:#0d1117;color:#e6edf3;font:14px/1.7 ui-monospace,Consolas,monospace;padding:20px}pre{white-space:pre-wrap}</style>
+</head>
+<body>
+<pre id="log">开始抓取…</pre>
+<script>
+(function () {
+  'use strict';
+  const REPO = 'HansBug/pindou-color-data';
+  const REF = 'main';
+  const BRANDS = [
+    { id: 'mard221', dir: 'mard-221-github', name: 'MARD 221', desc: '马得（MARD）5mm 常用 221 色' },
+    { id: 'mard291', dir: 'mard-291-github', name: 'MARD 291', desc: '马得（MARD）5mm 全色 291 色' },
+    { id: 'artkal197', dir: 'artkal-c-197-official', name: 'Artkal C 197', desc: '优肯 Artkal C 系列 5mm，官方 197 色' },
+    { id: 'artkalm221', dir: 'artkal-m-221-official', name: 'Artkal M 221', desc: '优肯 Artkal M 系列 2.6mm mini，221 色' },
+    { id: 'artkal418', dir: 'artkal-c197-m221-418-official', name: 'Artkal 418', desc: '优肯 C197 + M221 全量 418 色' },
+    { id: 'coco291', dir: 'coco-291', name: 'COCO 291', desc: 'COCO 2.6mm mini，291 色' },
+    { id: 'manman278', dir: 'manman-278', name: '漫漫 278', desc: '漫漫家 278 色' },
+    { id: 'mixiaowo290', dir: 'mixiaowo-290', name: '咪小窝 290', desc: '咪小窝 290 色' },
+    { id: 'panpan289', dir: 'panpan-289', name: '盼盼 289', desc: '盼盼 289 色' },
+    { id: 'youken174', dir: 'youken-public-174', name: '优肯 174', desc: '优肯公开版 174 色' },
+    { id: 'mardDoudou', dir: 'mard-221-alfonse-doudou', name: 'MARD 221（黄豆豆版）', desc: 'MARD 221 的另一个来源（黄豆豆整理）' }
+  ];
+
+  const logEl = document.getElementById('log');
+  const lines = [];
+  const log = (s) => { lines.push(s); logEl.textContent = lines.join('\n'); };
+
+  const api = (path) => 'https://api.github.com/repos/' + REPO + '/contents/' + path + '?ref=' + REF;
+
+  function decodeB64(b64) {
+    const bin = atob(String(b64).replace(/\s/g, ''));
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder('utf-8').decode(bytes);
+  }
+
+  async function fetchText(path) {
+    const res = await fetch(api(path), { cache: 'no-store' });
+    if (!res.ok) throw new Error(path + ' → HTTP ' + res.status);
+    const meta = await res.json();
+    if (meta.content) return decodeB64(meta.content);
+    if (meta.download_url) {
+      const r2 = await fetch(meta.download_url);
+      return await r2.text();
+    }
+    throw new Error(path + ' 没有内容');
+  }
+
+  function normalize(list) {
+    const out = [];
+    list.forEach((c) => {
+      const code = c.code || c.id || c.number;
+      const hex = c.hex || c.color || c.value;
+      if (!code || !hex) return;
+      const name = (c.name && c.name !== code) ? c.name : '';
+      out.push([String(code), String(hex).toUpperCase(), name]);
+    });
+    return out;
+  }
+
+  (async () => {
+    log('数据源：github.com/' + REPO + '（CC BY 4.0）');
+    const result = { source: REPO, ref: REF, fetchedAt: new Date().toISOString(), brands: [], meta: {} };
+
+    for (const b of BRANDS) {
+      try {
+        const text = await fetchText(b.dir + '/colors.json');
+        const raw = JSON.parse(text);
+        const list = Array.isArray(raw) ? raw : (raw.colors || raw.data || raw.items || []);
+        if (!Array.isArray(list) || !list.length) throw new Error('结构不认识');
+        const colors = normalize(list);
+        result.brands.push({ id: b.id, name: b.name, desc: b.desc, colors });
+        log('✓ ' + b.name + '：' + colors.length + ' 色');
+      } catch (e) {
+        log('✗ ' + b.name + '：' + e.message);
+      }
+    }
+
+    try { result.meta.manifest = JSON.parse(await fetchText('manifest.json')); } catch (e) { log('· manifest 读取失败'); }
+    try { result.meta.readme = await fetchText('README.md'); } catch (e) { log('· README 读取失败'); }
+
+    const blob = new Blob([JSON.stringify(result)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'palettes-brands.json';
+    document.body.appendChild(a);
+    a.click();
+    log('已触发下载 palettes-brands.json（' + Math.round(blob.size / 1024) + ' KB）');
+  })();
+})();
+</script>
+</body>
+</html>

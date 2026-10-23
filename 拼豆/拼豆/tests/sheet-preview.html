@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>图纸渲染自检 · 拼豆工坊</title>
+<style>
+  body { margin: 0; padding: 18px; background: #e9edf2; font: 13px "PingFang SC", "Microsoft YaHei", sans-serif; }
+  canvas { display: block; background: #fff; box-shadow: 0 8px 30px rgba(0, 0, 0, .18); margin-bottom: 18px; }
+  h1 { font-size: 14px; color: #556; margin: 0 0 12px; }
+</style>
+</head>
+<body>
+<h1>图纸渲染自检（page 参数：first / last / single）</h1>
+<script src="../js/color.js"></script>
+<script src="../js/quantize.js"></script>
+<script src="../js/palettes.js"></script>
+<script src="../js/pattern.js"></script>
+<script src="../js/render.js"></script>
+<script>
+(function () {
+  'use strict';
+  const params = new URLSearchParams(location.search);
+  const which = params.get('page') || 'first';
+  const style = params.get('style') || 'plain';
+  const plain = style === 'plain';
+
+  // 1) 造一张测试图：渐变天空 + 圆形 + 条纹
+  const S = 96;
+  const src = document.createElement('canvas');
+  src.width = S;
+  src.height = S;
+  const sx = src.getContext('2d');
+
+  const g = sx.createLinearGradient(0, 0, 0, S);
+  g.addColorStop(0, '#20365c');
+  g.addColorStop(0.45, '#4a7fb5');
+  g.addColorStop(1, '#ffe6b0');
+  sx.fillStyle = g;
+  sx.fillRect(0, 0, S, S);
+
+  sx.fillStyle = '#ff7a45';
+  sx.beginPath();
+  sx.arc(S * 0.5, S * 0.55, S * 0.24, 0, Math.PI * 2);
+  sx.fill();
+
+  sx.fillStyle = '#2f7a4f';
+  sx.fillRect(0, S * 0.72, S, S * 0.1);
+
+  sx.fillStyle = '#f2d36b';
+  for (let i = 0; i < 5; i++) sx.fillRect(S * (0.08 + i * 0.18), S * 0.86, S * 0.07, S * 0.1);
+
+  const data = sx.getImageData(0, 0, S, S).data;
+
+  // 2) 生成图纸
+  const pat = PBPattern.buildPattern({
+    source: { data, width: S, height: S },
+    cols: 58,
+    rows: 58,
+    palette: PBPalettes.UNIVERSAL,
+    maxColors: 14,
+    mergeDeltaE: 4,
+    dither: 0,
+    background: 'white'
+  });
+
+  const opts = {
+    cell: parseInt(params.get('cell'), 10) || 26,
+    mode: 'chart',
+    numbers: 'num',
+    grid: true,
+    thickEvery: 0,
+    boardCols: 0,
+    boardRows: 0,
+    split: params.get('split') === '1',
+    arrange: params.get('arrange') || 'grid',
+    pageCols: 29,
+    pageRows: 29,
+    overlap: 0,
+    legend: true,
+    rulers: !plain,
+    frame: plain,
+    legendStyle: plain ? 'compact' : 'table',
+    margin: plain ? 18 : undefined,
+    footer: !plain,
+    title: plain ? '' : '拼豆图纸 · 58 × 58 格',
+    subtitle: plain ? '' : pat.palette.length + ' 色 · 共 ' + pat.total + ' 颗 · 成品 29.0 × 29.0 cm',
+    footerText: plain ? '' : '拼豆工坊 · 自检 · ' + PBPalettes.SETS[0].name,
+    footerRight: plain ? '' : '1 格 = 1 颗豆'
+  };
+
+  if (!plain) {
+    if (which === 'last') {
+      const totalPages = PBRender.sheetLayout(pat, opts).totalPages;
+      opts.pageIndex = totalPages - 1;
+    } else if (which === 'first') {
+      opts.pageIndex = 0;
+    }
+  }
+
+  const out = document.createElement('canvas');
+  const L = PBRender.drawSheet(out, pat, opts);
+  document.body.appendChild(out);
+
+  const info = document.createElement('h1');
+  info.textContent = '样式 ' + style + ' · 输出 ' + L.width + ' × ' + L.height + 'px · ' + L.totalPages + ' 页 · ' +
+    pat.palette.length + ' 色 · 每格 ' + opts.cell + 'px';
+  document.body.insertBefore(info, document.body.firstChild.nextSibling);
+})();
+</script>
+</body>
+</html>

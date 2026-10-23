@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>拼豆工坊 · 图片转拼豆图纸</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23ff7a45'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body data-mode="simple">
+
+<header class="topbar">
+  <div class="brand">
+    <span class="logo" aria-hidden="true"></span>
+    <div class="brand-text">
+      <h1>拼豆工坊</h1>
+      <p>选一张图，调两个滑块，得到能照着拼的图纸</p>
+    </div>
+  </div>
+  <div class="top-actions">
+    <button id="btnOpen" class="btn primary">导入图片</button>
+    <button id="btnDemo" class="btn">示例图</button>
+    <span class="sep"></span>
+    <button id="btnUndo" class="btn icon" title="撤销（Ctrl+Z）" aria-label="撤销">↶</button>
+    <button id="btnRedo" class="btn icon" title="重做（Ctrl+Shift+Z）" aria-label="重做">↷</button>
+    <span class="sep"></span>
+    <button id="btnProjectSave" class="btn ghost">保存图纸</button>
+    <button id="btnProjectLoad" class="btn ghost">我的图纸</button>
+    <button id="btnPrint" class="btn ghost">打印</button>
+    <button id="btnHelp" class="btn icon" title="怎么用" aria-label="怎么用">?</button>
+  </div>
+</header>
+
+<main class="workspace">
+
+  <!-- ============ 左：设置 ============ -->
+  <aside class="panel left">
+    <div class="mode-switch" id="modeSwitch" role="tablist">
+      <button type="button" data-mode="simple" class="on">简单模式</button>
+      <button type="button" data-mode="pro">专业模式</button>
+    </div>
+
+    <section class="card">
+      <h2><span class="step">1</span> 选一张图</h2>
+      <div class="thumb-row">
+        <div class="thumb" id="imgThumb"><span>未选择</span></div>
+        <div class="thumb-meta">
+          <strong id="imgName">还没有导入图片</strong>
+          <span id="imgInfo">支持 JPG / PNG / WEBP，可直接 Ctrl+V 粘贴</span>
+        </div>
+      </div>
+      <div class="row gap">
+        <button class="btn small" id="btnOpen2">选择图片</button>
+        <button class="btn small ghost" id="btnClear">清空</button>
+        <span class="grow"></span>
+        <button class="btn small ghost pro-only" id="btnRotate" title="顺时针旋转 90°">旋转</button>
+        <button class="btn small ghost pro-only" id="btnFlipH" title="左右镜像">镜像</button>
+      </div>
+
+      <div class="bg-box">
+        <label class="check"><input type="checkbox" id="chkRemoveBg"> 去掉背景（只留主体）</label>
+        <div class="bg-opts" id="bgOpts" hidden>
+          <div class="bg-preview">
+            <figure><canvas id="bgPreviewOrig"></canvas><figcaption>原图</figcaption></figure>
+            <figure><canvas id="bgPreviewMask"></canvas><figcaption>去背景后</figcaption></figure>
+          </div>
+          <div class="field" id="bgTolField">
+            <label for="bgTolNum">抠得狠不狠</label>
+            <div class="slider-row">
+              <input type="range" id="bgTolRange" min="0" max="100" value="40">
+              <input type="number" id="bgTolNum" class="num-input" min="0" max="100" step="1" value="40" inputmode="numeric" aria-label="抠得狠不狠">
+            </div>
+          </div>
+          <label class="check" id="bgKeepLargestRow"><input type="checkbox" id="chkKeepLargest" checked> 去掉零碎小块（只留最大的一块）</label>
+          <p class="hint" id="bgHint"></p>
+          <details class="adv">
+            <summary>高级：换成 AI 抠图（需要装 Python）</summary>
+            <div class="field">
+              <label for="selBgMethod">抠图方式</label>
+              <select id="selBgMethod">
+                <option value="local">本地算法（离线，够用）</option>
+                <option value="rembg">rembg 服务（AI，需本机启动）</option>
+              </select>
+            </div>
+            <div class="field" id="bgUrlField" hidden>
+              <label for="bgUrl">rembg 服务地址</label>
+              <input type="text" id="bgUrl" value="http://127.0.0.1:7000" spellcheck="false" autocomplete="off">
+            </div>
+            <p class="hint">装法：<code>pip install rembg fastapi uvicorn python-multipart</code>，再运行 <code>python tools/rembg_server.py</code>。第一次会下载模型（约 176 MB），图片只在你自己电脑上处理。</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2><span class="step">2</span> 图多大</h2>
+      <div class="field">
+        <label for="colsNum">横向格子数</label>
+        <div class="slider-row">
+          <input type="range" id="colsRange" min="8" max="200" value="58">
+          <input type="number" id="colsNum" class="num-input" min="8" max="200" step="1" value="58" inputmode="numeric" aria-label="横向格子数">
+        </div>
+      </div>
+      <div class="chips" id="sizePresets">
+        <button class="chip" data-cols="29">29 一小块</button>
+        <button class="chip" data-cols="58">58 一块板</button>
+        <button class="chip" data-cols="87">87 四块板</button>
+        <button class="chip" data-cols="116">116 大图</button>
+      </div>
+      <p class="hint" id="sizeHint">58 颗 ≈ 29 cm 见方，正好一块标准拼豆板</p>
+      <div class="pro-only">
+        <div class="field mt8">
+          <label for="rowsNum">纵向格子数</label>
+          <div class="slider-row">
+            <input type="range" id="rowsRange" min="8" max="200" value="58" disabled>
+            <input type="number" id="rowsNum" class="num-input" min="8" max="200" step="1" value="58" inputmode="numeric" aria-label="纵向格子数" disabled>
+          </div>
+        </div>
+        <label class="check"><input type="checkbox" id="chkAspect" checked> 锁定原图比例</label>
+        <div class="field mt8">
+          <label for="selBead">豆子多大</label>
+          <select id="selBead">
+            <option value="2.6">2.6 mm（迷你）</option>
+            <option value="5" selected>5 mm（标准）</option>
+            <option value="10">10 mm（大号）</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2><span class="step">3</span> 用几种颜色</h2>
+
+      <div class="simple-only">
+        <div class="field">
+          <label for="simpleColorNum">颜色精简程度 <b id="simpleColorVal">约 16 色</b></label>
+          <div class="slider-row">
+            <input type="range" id="simpleColorRange" min="0" max="100" value="33">
+            <input type="number" id="simpleColorNum" class="num-input" min="0" max="100" step="1" value="33" inputmode="numeric" aria-label="颜色精简程度">
+          </div>
+        </div>
+        <p class="hint" id="colorAdvice">往右拉 = 颜色更少、更好买豆；往左拉 = 更像原图</p>
+      </div>
+
+      <div class="pro-only">
+        <div class="field">
+          <label for="colorsNum">最多用几种颜色</label>
+          <div class="slider-row">
+            <input type="range" id="colorsRange" min="2" max="84" value="16">
+            <input type="number" id="colorsNum" class="num-input" min="2" max="84" step="1" value="16" inputmode="numeric" aria-label="最多用几种颜色">
+          </div>
+        </div>
+        <div class="field">
+          <label for="mergeRange">相似颜色合并 <b id="mergeVal">4</b></label>
+          <input type="range" id="mergeRange" min="0" max="24" value="4">
+          <p class="hint">数字越大，越多的“差不多”的颜色会被当成同一种豆。0 = 不合并。</p>
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label for="selDither">颜色混合</label>
+            <select id="selDither">
+              <option value="0">关闭（颜色更纯，推荐）</option>
+              <option value="1">轻度混合（更接近原图）</option>
+              <option value="2">强烈混合（会有点糊）</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="selBg">背景怎么处理</label>
+            <select id="selBg">
+              <option value="white">用白豆铺满</option>
+              <option value="black">用黑豆铺满</option>
+              <option value="none">不要背景（镂空）</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label for="brightRange">亮度 <b id="brightVal">0</b></label>
+          <input type="range" id="brightRange" min="-100" max="100" value="0">
+        </div>
+        <div class="field">
+          <label for="contrastRange">对比度 <b id="contrastVal">0</b></label>
+          <input type="range" id="contrastRange" min="-100" max="100" value="0">
+        </div>
+        <div class="field">
+          <label for="saturRange">鲜艳度 <b id="saturVal">0</b></label>
+          <input type="range" id="saturRange" min="-100" max="100" value="0">
+        </div>
+      </div>
+
+      <div class="field mt8">
+        <label for="selPalette">买的是哪个牌子的豆</label>
+        <div class="row gap">
+          <select id="selPalette"></select>
+          <button class="btn small ghost" id="btnPalette" title="导入自己的色卡">导入</button>
+          <button class="btn small ghost" id="btnPaletteChart" title="看色卡对照图">色卡图</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card pro-only">
+      <h2>显示</h2>
+      <div class="grid2">
+        <div class="field">
+          <label for="selMode">预览长什么样</label>
+          <select id="selMode">
+            <option value="beads">彩色豆</option>
+            <option value="chart">白底图纸</option>
+            <option value="colorNum">彩色 + 编号</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="selNumbers">格子编号</label>
+          <select id="selNumbers">
+            <option value="num">数字</option>
+            <option value="sym">符号</option>
+            <option value="none">不显示</option>
+          </select>
+        </div>
+      </div>
+      <label class="check"><input type="checkbox" id="chkGrid" checked> 画网格线</label>
+      <label class="check"><input type="checkbox" id="chkThick" checked> 每 5 格加粗（方便数格子）</label>
+      <label class="check"><input type="checkbox" id="chkBoard"> 标出拼豆板分界（一块 29×29）</label>
+      <label class="check"><input type="checkbox" id="chkRuler" checked> 显示坐标刻度</label>
+      <div class="field">
+        <label for="zoomNum">格子大小 <span class="muted small">px · 空 = 自动</span></label>
+        <div class="slider-row">
+          <input type="range" id="zoomRange" min="0" max="48" value="0">
+          <input type="number" id="zoomNum" class="num-input" min="0" max="48" step="1" placeholder="自动" inputmode="numeric" aria-label="格子大小（像素）">
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>导出</h2>
+      <button class="btn block primary" id="btnSheetDialog">导出图纸（含打印）</button>
+      <div class="row gap mt8">
+        <button class="btn small" id="btnQuickPng">快速存图</button>
+        <button class="btn small" id="btnCsv">配色表 CSV</button>
+      </div>
+      <button class="btn small ghost block mt8" id="btnResetAll">恢复默认设置</button>
+    </section>
+  </aside>
+
+  <!-- ============ 中：预览 ============ -->
+  <section class="stage">
+    <div class="stage-head">
+      <div class="stage-title">
+        <strong id="stageTitle">预览</strong>
+        <span class="pill" id="stagePill">未导入图片</span>
+      </div>
+      <div class="stage-tools">
+        <span class="muted" id="perfInfo"></span>
+      </div>
+    </div>
+    <div class="canvas-wrap" id="canvasWrap">
+      <div class="empty" id="emptyState">
+        <div class="empty-icon" aria-hidden="true"></div>
+        <p><strong>拖一张图进来</strong>，或点右上角「导入图片 / 示例图」</p>
+        <p class="muted">手机上可以点格子看色号；所有计算都在你自己的设备里完成。</p>
+      </div>
+      <canvas id="preview"></canvas>
+    </div>
+    <div class="hoverbar" id="hoverbar">
+      <span class="muted">鼠标悬停或点一下格子，就能看到坐标和色号</span>
+    </div>
+  </section>
+
+  <!-- ============ 右：概览 + 购买清单 ============ -->
+  <aside class="panel right">
+    <section class="card">
+      <h2>概览</h2>
+      <div class="stats">
+        <div class="stat"><span>格子</span><b id="statSize">—</b></div>
+        <div class="stat"><span>总豆数</span><b id="statBeads">—</b></div>
+        <div class="stat"><span>颜色</span><b id="statColors">—</b></div>
+        <div class="stat"><span>拼豆板</span><b id="statBoards">—</b></div>
+        <div class="stat wide"><span>成品尺寸</span><b id="statPhysical">—</b></div>
+        <div class="stat wide"><span>大概要做</span><b id="statTime">—</b></div>
+      </div>
+    </section>
+
+    <section class="card grow">
+      <h2>购买清单 <span class="muted" id="legendCount"></span></h2>
+      <p class="hint tight">点一行＝只看这个颜色；「换」可以把缺货的颜色换成相近的。</p>
+      <div class="legend-list" id="legendList">
+        <p class="muted pad">导入图片后这里会列出每种豆要多少颗。</p>
+      </div>
+      <div class="row gap mt8">
+        <button class="btn small" id="btnShopping">打印清单</button>
+        <button class="btn small ghost" id="btnClearReplace" title="取消所有手动换色">清除换色</button>
+      </div>
+    </section>
+  </aside>
+</main>
+
+<!-- ============ 新手引导 ============ -->
+<dialog id="guideDialog" class="dialog">
+  <form method="dialog" class="dialog-body">
+    <h3>3 步就能出图纸</h3>
+    <ol class="guide-steps">
+      <li><b>选图</b>：右上角「导入图片」，或先点「示例图」试试。</li>
+      <li><b>调两个滑块</b>：「图多大」和「颜色精简程度」——其它参数都可以先不管。</li>
+      <li><b>导出</b>：点「导出图纸」，选「发微信 / 打印 / 高清」，存下来照着拼。</li>
+    </ol>
+    <p class="hint">右边会实时算出<b>总豆数</b>和<b>大概要做多久</b>；下面是<b>购买清单</b>，按色号买豆，点一行可以只看这个颜色。</p>
+    <p class="hint">熟练之后点左上角切到「专业模式」，能看到相似色合并、颜色混合、导出分页等全部参数。</p>
+    <div class="dialog-actions">
+      <button type="button" class="btn ghost" id="btnGuideDemo">先看看示例</button>
+      <span class="grow"></span>
+      <button type="button" class="btn primary" id="btnGuideOk">知道了</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ============ 色卡对照图 ============ -->
+<dialog id="chartDialog" class="dialog wide">
+  <form method="dialog" class="dialog-body">
+    <h3 id="chartTitle">色卡对照</h3>
+    <p class="hint">按色卡数据画出来的参考图，实际豆子会有批次色差，下单前请以实体色卡为准。</p>
+    <div class="chart-wrap"><canvas id="chartCanvas"></canvas></div>
+    <div class="dialog-actions">
+      <button type="button" class="btn ghost" id="btnChartDownload">存成图片</button>
+      <span class="grow"></span>
+      <button type="button" class="btn primary" id="btnChartClose">关闭</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ============ 换色 ============ -->
+<dialog id="replaceDialog" class="dialog">
+  <form method="dialog" class="dialog-body">
+    <h3>换一种豆</h3>
+    <p class="hint" id="replaceInfo">选一个相近的颜色替换过去。</p>
+    <div class="replace-grid" id="replaceGrid"></div>
+    <div class="dialog-actions">
+      <button type="button" class="btn ghost" id="btnReplaceReset">取消这个换色</button>
+      <span class="grow"></span>
+      <button type="button" class="btn" id="btnReplaceClose">关闭</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ============ 保存图纸 ============ -->
+<dialog id="saveDialog" class="dialog">
+  <form method="dialog" class="dialog-body">
+    <h3>保存这张图纸</h3>
+    <p class="hint">存在这个浏览器里，下次打开「我的图纸」就能继续改（换设备或清缓存就没了）。</p>
+    <div class="field">
+      <label for="saveName">给它起个名字</label>
+      <input type="text" id="saveName" placeholder="例如：小猫头像" autocomplete="off">
+    </div>
+    <div class="dialog-actions">
+      <span class="grow"></span>
+      <button type="button" class="btn ghost" id="btnSaveCancel">取消</button>
+      <button type="button" class="btn primary" id="btnSaveOk">保存</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ============ 我的图纸 ============ -->
+<dialog id="savesDialog" class="dialog">
+  <form method="dialog" class="dialog-body">
+    <h3>我的图纸</h3>
+    <div class="saves-list" id="savesList"></div>
+    <div class="dialog-actions">
+      <button type="button" class="btn ghost small" id="btnExportFile">导出成文件</button>
+      <button type="button" class="btn ghost small" id="btnImportFile">从文件导入</button>
+      <span class="grow"></span>
+      <button type="button" class="btn" id="btnSavesClose">关闭</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ============ 购买清单 ============ -->
+<dialog id="shoppingDialog" class="dialog">
+  <form method="dialog" class="dialog-body">
+    <h3>购买清单</h3>
+    <p class="hint" id="shoppingMeta">—</p>
+    <div class="shopping-wrap"><canvas id="shoppingCanvas"></canvas></div>
+    <div class="dialog-actions">
+      <button type="button" class="btn ghost" id="btnShoppingPng">存成图片</button>
+      <button type="button" class="btn ghost" id="btnShoppingPrint">打印</button>
+      <span class="grow"></span>
+      <button type="button" class="btn primary" id="btnShoppingClose">关闭</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ============ 导入色卡 ============ -->
+<dialog id="paletteDialog" class="dialog">
+  <form method="dialog" class="dialog-body">
+    <h3>导入自己的色卡</h3>
+    <p class="hint">支持 CSV（每行 <code>色号,名称,#RRGGBB</code>）或 JSON。不会写？点「下载模板」，用 Excel 填完再传回来。</p>
+    <div class="field">
+      <label for="paletteName">色卡名称</label>
+      <input type="text" id="paletteName" placeholder="例如：我手上的 72 色" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="paletteText">粘贴内容</label>
+      <textarea id="paletteText" rows="8" spellcheck="false" placeholder="A1,纯白,#FFFFFF&#10;A2,米白,#F6F1E4"></textarea>
+    </div>
+    <div class="row gap">
+      <button type="button" class="btn small ghost" id="btnPaletteFile">从文件读取…</button>
+      <button type="button" class="btn small ghost" id="btnPaletteTemplate">下载模板</button>
+      <span class="muted small" id="paletteFileInfo">支持 .json / .csv / .txt</span>
+    </div>
+    <div class="dialog-actions">
+      <button type="button" class="btn ghost" id="btnPaletteClean">清除已导入</button>
+      <span class="grow"></span>
+      <button type="button" class="btn ghost" id="btnPaletteCancel">取消</button>
+      <button type="button" class="btn primary" id="btnPaletteImport">导入并保存</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ============ 导出图纸 ============ -->
+<dialog id="sheetDialog" class="dialog wide">
+  <form method="dialog" class="dialog-body">
+    <h3>导出图纸</h3>
+    <div class="dialog-split">
+      <div class="dialog-opts">
+        <div class="field">
+          <label>用在哪</label>
+          <div class="preset-row" id="sdPresets">
+            <button type="button" class="preset" data-preset="wechat">发微信<small>小图，手机能开</small></button>
+            <button type="button" class="preset on" data-preset="print">打印<small>A4 分页</small></button>
+            <button type="button" class="preset" data-preset="hd">高清<small>大图存档</small></button>
+          </div>
+        </div>
+        <label class="check"><input type="checkbox" id="sdNumbersOn" checked> 每格标上色号</label>
+        <p class="hint" id="sdDims">—</p>
+        <p class="hint" id="sdInfo">—</p>
+
+        <details class="adv">
+          <summary>高级选项</summary>
+          <div class="field">
+            <label for="sdCell">每格像素 <b id="sdCellVal">26</b></label>
+            <input type="range" id="sdCell" min="12" max="48" value="26">
+          </div>
+          <div class="field">
+            <label for="sdStyle">图纸长什么样</label>
+            <select id="sdStyle">
+              <option value="plain">数字表（黑框 + 底部用量）</option>
+              <option value="chart">白底图纸（带刻度 / 标题 / 配色表）</option>
+              <option value="beads">彩色底</option>
+              <option value="colorNum">彩色底 + 编号</option>
+            </select>
+          </div>
+          <label class="check"><input type="checkbox" id="sdFollow" checked> 跟着预览样式走</label>
+          <div class="field">
+            <label for="sdNumbers">编号用</label>
+            <select id="sdNumbers">
+              <option value="num">数字</option>
+              <option value="sym">符号</option>
+              <option value="none">不显示</option>
+            </select>
+          </div>
+          <label class="check"><input type="checkbox" id="sdThick"> 每 5 格加粗辅助线</label>
+          <label class="check"><input type="checkbox" id="sdSplit"> 按拼豆板分页</label>
+          <div class="field">
+            <label for="sdArrange">多页拼接</label>
+            <select id="sdArrange">
+              <option value="grid">按原图位置拼成一张</option>
+              <option value="stack">一页接一页竖排</option>
+            </select>
+          </div>
+          <div class="grid2">
+            <div class="field">
+              <label for="sdPageCols">每页列数</label>
+              <input type="number" id="sdPageCols" min="4" max="200" value="29">
+            </div>
+            <div class="field">
+              <label for="sdPageRows">每页行数</label>
+              <input type="number" id="sdPageRows" min="4" max="200" value="29">
+            </div>
+          </div>
+          <div class="field">
+            <label for="sdOverlap">页面重叠格数 <b id="sdOverlapVal">0</b></label>
+            <input type="range" id="sdOverlap" min="0" max="5" value="0">
+          </div>
+          <label class="check"><input type="checkbox" id="sdLegend" checked> 附配色表</label>
+          <label class="check"><input type="checkbox" id="sdTint"> 用淡色提示格子颜色</label>
+        </details>
+
+        <div class="dialog-actions">
+          <button type="button" class="btn ghost" id="btnSheetCancel">关闭</button>
+          <button type="button" class="btn ghost" id="btnSheetMulti">分页存多张</button>
+          <button type="button" class="btn" id="btnSheetPrint">打印</button>
+          <button type="button" class="btn primary" id="btnSheetExport">导出 PNG</button>
+        </div>
+      </div>
+      <div class="dialog-preview">
+        <div class="sheet-preview-wrap"><canvas id="sdPreview"></canvas></div>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast"></div>
+
+<input type="file" id="fileInput" accept="image/*" hidden>
+<input type="file" id="projectInput" accept=".json,application/json" hidden>
+<input type="file" id="paletteFileInput" accept=".json,.csv,.txt" hidden>
+
+<script src="js/color.js"></script>
+<script src="js/quantize.js"></script>
+<script src="js/palettes.brands.js"></script>
+<script src="js/palettes.js"></script>
+<script src="js/bgremove.js"></script>
+<script src="js/pattern.js"></script>
+<script src="js/render.js"></script>
+<script src="js/export.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
