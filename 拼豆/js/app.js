@@ -40,6 +40,8 @@
     beadSize: '5',
     boardCols: 29,
     boardRows: 29,
+    uiMode: 'simple',
+    replaceMap: {},
     removeBg: false,
     bgMethod: 'local',
     bgTolerance: 40,
@@ -48,6 +50,7 @@
     sheet: {
       cell: 26,
       style: 'plain',
+      follow: true,
       numbers: 'num',
       thick: false,
       split: false,
@@ -120,6 +123,7 @@
 
   function saveSettings() {
     try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) { /* ignore */ }
+    noteHistory();
   }
 
   /* ---------------- 色卡 ---------------- */
@@ -246,6 +250,13 @@
       settings.rows = Math.max(2, Math.round(settings.cols / state.aspect));
       $('rowsRange').value = String(clamp(settings.rows, 8, 200));
     }
+    // 第一次导入时提醒可以换品牌
+    if (!settings.paletteAsked) {
+      settings.paletteAsked = true;
+      saveSettings();
+      setTimeout(() => toast('提示：在「用几种颜色」里可以选你买的豆子品牌，默认 MARD 221', 4200), 900);
+    }
+    updateAdvice();
     updateMask();
   }
 
@@ -531,6 +542,9 @@
     state.pattern = pat;
     state.focus = -1;
     state.ms = dt;
+    if (state.pattern) {
+      try { applyReplacements(state.pattern); } catch (e) { console.warn(e); }
+    }
     $('rowsRange').value = String(clamp(pat.rows, 8, 200));
     // 正在输入时不要抢用户的文字
     if (document.activeElement !== $('rowsNum')) setNum('rowsNum', pat.rows);
@@ -590,7 +604,7 @@
     const pat = state.pattern;
     const h = state.hover;
     if (!pat || !h) {
-      bar.innerHTML = '<span class="muted">把鼠标放到图纸上，可查看坐标与色号</span>';
+      bar.innerHTML = '<span class="muted">鼠标悬停或点一下格子，就能看到坐标和色号</span>';
       return;
     }
     const idx = pat.indices[h.r * pat.cols + h.c];
@@ -622,6 +636,18 @@
     $('statBoards').textContent = boards + ' 块';
     $('statPhysical').textContent =
       (pat.cols * beadSize / 10).toFixed(1) + ' × ' + (pat.rows * beadSize / 10).toFixed(1) + ' cm';
+    $('statTime').textContent = timeText(pat.total);
+
+    // 简单模式的“实际几色”
+    $('simpleColorVal').textContent = '实际 ' + pat.palette.length + ' 色';
+  }
+
+  /** 3 秒一颗的粗略估算 */
+  function timeText(total) {
+    const sec = Math.max(0, total) * 3;
+    if (sec < 90) return '几分钟';
+    if (sec < 3600) return Math.round(sec / 60) + ' 分钟';
+    return (sec / 3600).toFixed(1) + ' 小时';
   }
 
   function renderLegend() {
@@ -629,26 +655,537 @@
     const list = $('legendList');
     if (!pat) return;
     const total = pat.total || 1;
+    const replaced = Object.keys(settings.replaceMap || {});
 
     list.innerHTML = '';
     pat.palette.forEach((p, i) => {
-      const btn = document.createElement('button');
-      btn.className = 'legend-item' + (state.focus === i ? ' active' : '');
-      btn.type = 'button';
-      btn.title = p.code + (p.name ? ' ' + p.name : '') + ' ' + p.hex + ' · ' + p.count + ' 颗';
-      btn.innerHTML =
+      const row = document.createElement('div');
+      row.className = 'legend-item' + (state.focus === i ? ' active' : '');
+      row.title = p.code + (p.name ? ' ' + p.name : '') + ' ' + p.hex + ' · ' + p.count + ' 颗';
+      row.innerHTML =
         '<span class="sw" style="background:' + p.hex + '"></span>' +
         '<span class="num">' + (settings.numbers === 'sym' ? R.symbolFor(i) : '#' + (i + 1)) + '</span>' +
         '<span class="name">' + (p.name ? '<small>' + p.code + '</small>' + p.name : p.code) + '</span>' +
-        '<span class="cnt">' + fmt(p.count) + ' <span class="muted">' + (p.count / total * 100).toFixed(1) + '%</span></span>';
-      btn.addEventListener('click', () => {
+        '<span class="cnt"><strong>' + fmt(p.count) + '</strong></span>' +
+        '<button type="button" class="swap" title="换成相近的另一种豆">换</button>';
+
+      row.querySelector('.sw').addEventListener('click', (e) => {
+        e.stopPropagation();
         state.focus = state.focus === i ? -1 : i;
         renderPreview();
         renderLegend();
       });
-      list.appendChild(btn);
+      row.querySelector('.name').addEventListener('click', (e) => {
+        e.stopPropagation();
+        state.focus = state.focus === i ? -1 : i;
+        renderPreview();
+        renderLegend();
+      });
+      row.querySelector('.cnt').addEventListener('click', (e) => {
+        e.stopPropagation();
+        state.focus = state.focus === i ? -1 : i;
+        renderPreview();
+        renderLegend();
+      });
+      row.querySelector('.swap').addEventListener('click', (e) => {
+        e.stopPropagation();
+        openReplace(p.code);
+      });
+      list.appendChild(row);
     });
     $('legendCount').textContent = pat.palette.length + ' 种 · ' + fmt(pat.total) + ' 颗';
+    $('btnClearReplace').disabled = replaced.length === 0;
+    $('btnClearReplace').textContent = replaced.length ? '清除换色（' + replaced.length + '）' : '清除换色';
+  }
+
+  /* ---------------- 简单 / 专业模式 ---------------- */
+  function setUIMode(mode, silent) {
+    settings.uiMode = mode === 'pro' ? 'pro' : 'simple';
+    document.body.setAttribute('data-mode', settings.uiMode);
+    Array.from($('modeSwitch').children).forEach((b) => {
+      b.classList.toggle('on', b.getAttribute('data-mode') === settings.uiMode);
+    });
+    if (!silent) saveSettings();
+    if (state.pattern) renderPreview();
+  }
+
+  /* ---------------- 撤销 / 重做 ---------------- */
+  const hist = { undo: [], redo: [], last: '', timer: 0, quiet: false };
+
+  function snapshot() { return JSON.stringify(settings); }
+
+  function updateHistButtons() {
+    $('btnUndo').disabled = hist.undo.length === 0;
+    $('btnRedo').disabled = hist.redo.length === 0;
+  }
+
+  function noteHistory() {
+    if (hist.quiet) return;
+    clearTimeout(hist.timer);
+    hist.timer = setTimeout(pushHistory, 700);
+  }
+
+  function pushHistory() {
+    clearTimeout(hist.timer);
+    const cur = snapshot();
+    if (cur === hist.last) return false;
+    hist.undo.push(hist.last);
+    if (hist.undo.length > 60) hist.undo.shift();
+    hist.redo.length = 0;
+    hist.last = cur;
+    updateHistButtons();
+    return true;
+  }
+
+  function applySnapshot(snap) {
+    hist.quiet = true;
+    try { settings = JSON.parse(snap); } catch (e) { hist.quiet = false; return; }
+    applySettingsToUI();
+    hist.last = snap;
+    hist.quiet = false;
+    saveSettings();
+    updateHistButtons();
+    updateMask();
+  }
+
+  function undo() {
+    pushHistory();
+    if (!hist.undo.length) { toast('已经是最早的状态了'); return; }
+    hist.redo.push(snapshot());
+    applySnapshot(hist.undo.pop());
+    toast('已撤销');
+  }
+
+  function redo() {
+    if (!hist.redo.length) { toast('没有可以重做的了'); return; }
+    hist.undo.push(snapshot());
+    applySnapshot(hist.redo.pop());
+    toast('已重做');
+  }
+
+  /* ---------------- 简单模式：颜色精简程度 ---------------- */
+  function levelFromColors() {
+    const c = clamp(settings.maxColors | 0, 4, 24);
+    return clamp(Math.round((24 - c) * 5), 0, 100);
+  }
+
+  function colorsFromLevel(L) {
+    const c = clamp(Math.round(24 - L / 5), 4, 24);
+    const max = currentPalette().colors.length;
+    return Math.min(c, max);
+  }
+
+  function applySimpleLevel(L, silent) {
+    settings.maxColors = colorsFromLevel(L);
+    settings.mergeDeltaE = clamp(Math.round(L / 10), 0, 10);
+    $('simpleColorRange').value = String(L);
+    if (document.activeElement !== $('simpleColorNum')) setNum('simpleColorNum', L);
+    if (!silent) { saveSettings(); scheduleRebuild(); }
+  }
+
+  function syncSimpleColorUI() {
+    const L = levelFromColors();
+    $('simpleColorRange').value = String(L);
+    if (document.activeElement !== $('simpleColorNum')) setNum('simpleColorNum', L);
+  }
+
+  /** 分析这张图适合几种颜色 */
+  function updateAdvice() {
+    const el = $('colorAdvice');
+    if (!el) return;
+    if (!state.source) {
+      el.innerHTML = '往右拉 = 颜色更少、更好买豆；往左拉 = 更像原图';
+      return;
+    }
+    let rec = null;
+    try {
+      const rows = Math.max(8, Math.round(40 / (state.aspect || 1)));
+      const pat = P.buildPattern({
+        source: state.source,
+        cols: 40,
+        rows: Math.min(120, rows),
+        palette: currentPalette().colors,
+        maxColors: 24,
+        mergeDeltaE: 3,
+        dither: 0,
+        background: settings.background
+      });
+      const total = pat.total || 1;
+      const sig = pat.palette.filter((p) => p.count / total >= 0.02).length;
+      rec = clamp(sig + 1, 6, 24);
+    } catch (e) { rec = null; }
+    state.advice = rec;
+    el.innerHTML = rec
+      ? '这张图建议 <b>约 ' + rec + ' 色</b>：往右拉颜色更少、更好买豆，往左拉更像原图。'
+      : '往右拉 = 颜色更少、更好买豆；往左拉 = 更像原图';
+  }
+
+  /* ---------------- 换色（颜色替换） ---------------- */
+  let replaceCode = null;
+
+  function openReplace(code) {
+    const pal = currentPalette();
+    const cur = pal.colors.find((c) => c.code === code);
+    if (!cur || !state.pattern) return;
+    replaceCode = code;
+
+    const used = Object.keys(settings.replaceMap || {}).indexOf(code) >= 0;
+    $('replaceInfo').innerHTML = '现在用的是 <b>' + code + '</b>' + (used ? '（已经换过一次）' : '') +
+      '，下面是颜色最接近的几种豆：';
+
+    const grid = $('replaceGrid');
+    grid.innerHTML = '';
+    const here = C.rgbToLab(cur.r, cur.g, cur.b);
+    const cand = pal.colors
+      .filter((c) => c.code !== code)
+      .map((c) => ({ c, de: C.deltaE2000(here, C.rgbToLab(c.r, c.g, c.b)) }))
+      .sort((a, b) => a.de - b.de)
+      .slice(0, 36);
+
+    cand.forEach(({ c, de }) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'replace-item';
+      b.innerHTML = '<span class="sw" style="background:' + c.hex + '"></span>' +
+        '<b>' + c.code + '</b><small>差 ' + de.toFixed(1) + '</small>';
+      b.addEventListener('click', () => {
+        const map = Object.assign({}, settings.replaceMap || {});
+        map[code] = c.code;
+        settings.replaceMap = map;
+        saveSettings();
+        $('replaceDialog').close();
+        rebuild();
+        toast('已把 ' + code + ' 换成 ' + c.code);
+      });
+      grid.appendChild(b);
+    });
+
+    $('replaceDialog').showModal();
+  }
+
+  /** 把换色结果合并进图纸：同色号合并、按豆量重新编号 */
+  function applyReplacements(pat) {
+    const map = settings.replaceMap || {};
+    const keys = Object.keys(map);
+    if (!keys.length) return pat;
+    const pal = currentPalette().colors;
+    const byCode = new Map(pal.map((c) => [c.code, c]));
+
+    let changed = false;
+    const mapped = pat.palette.map((p) => {
+      const to = map[p.code];
+      if (!to) return p;
+      const t = byCode.get(to);
+      if (!t) return p;
+      changed = true;
+      return Object.assign({}, p, {
+        code: t.code, name: t.name || '', hex: t.hex, r: t.r, g: t.g, b: t.b
+      });
+    });
+    if (!changed) return pat;
+
+    const groups = new Map();
+    const merged = [];
+    const remap = new Int32Array(pat.palette.length).fill(-1);
+    mapped.forEach((p, i) => {
+      let gi = groups.get(p.code);
+      if (gi === undefined) {
+        gi = merged.length;
+        groups.set(p.code, gi);
+        merged.push({
+          code: p.code, name: p.name, hex: p.hex, r: p.r, g: p.g, b: p.b, count: 0
+        });
+      }
+      merged[gi].count += p.count;
+      remap[i] = gi;
+    });
+
+    const order = merged.map((_, i) => i).sort((a, b) => merged[b].count - merged[a].count);
+    const remap2 = new Int32Array(merged.length);
+    order.forEach((oldI, newI) => { remap2[oldI] = newI; });
+
+    const idx = pat.indices;
+    for (let i = 0; i < idx.length; i++) {
+      const v = idx[i];
+      if (v >= 0) idx[i] = remap2[remap[v]];
+    }
+
+    let total = 0;
+    pat.palette = order.map((oldI, newI) => {
+      const p = merged[oldI];
+      total += p.count;
+      return { index: newI, code: p.code, name: p.name, hex: p.hex, r: p.r, g: p.g, b: p.b, count: p.count };
+    });
+    pat.total = total;
+    return pat;
+  }
+
+  /* ---------------- 色卡对照图 ---------------- */
+  function openChart() {
+    const pal = currentPalette();
+    $('chartTitle').textContent = pal.name + ' · ' + pal.colors.length + ' 色';
+    drawChart($('chartCanvas'), pal.colors);
+    $('chartDialog').showModal();
+  }
+
+  function drawChart(canvas, colors) {
+    const cols = colors.length > 220 ? 20 : (colors.length > 100 ? 16 : 12);
+    const cw = 92;
+    const ch = 64;
+    const pad = 18;
+    const rows = Math.ceil(colors.length / cols);
+    canvas.width = pad * 2 + cols * cw;
+    canvas.height = pad + 34 + rows * ch + 16;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#111';
+    ctx.font = '700 16px "PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.fillText('色卡对照（参考色）', pad, pad + 8);
+
+    const top = pad + 26;
+    for (let i = 0; i < colors.length; i++) {
+      const c = colors[i];
+      const x = pad + (i % cols) * cw;
+      const y = top + Math.floor(i / cols) * ch;
+      ctx.fillStyle = c.hex;
+      ctx.fillRect(x + 2, y + 2, cw - 10, ch - 28);
+      ctx.strokeStyle = 'rgba(0,0,0,.35)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x + 2.5, y + 2.5, cw - 11, ch - 29);
+      ctx.fillStyle = '#222';
+      ctx.font = '700 12px ui-monospace, Consolas, monospace';
+      ctx.fillText(c.code, x + 5, y + ch - 10);
+    }
+  }
+
+  /* ---------------- 购买清单 ---------------- */
+  function drawShopping(canvas) {
+    const pat = state.pattern;
+    if (!pat) return null;
+    const pal = currentPalette();
+    const cols = pat.palette.length > 26 ? 3 : 2;
+    const rowH = 34;
+    const colW = 288;
+    const pad = 26;
+    const rows = Math.ceil(pat.palette.length / cols);
+    canvas.width = pad * 2 + cols * colW;
+    canvas.height = pad + 74 + rows * rowH + 30;
+
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left';
+
+    ctx.fillStyle = '#111';
+    ctx.font = '700 22px "PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.fillText('拼豆购买清单', pad, pad + 12);
+
+    ctx.fillStyle = '#555';
+    ctx.font = '500 13px "PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.fillText(pal.name + ' · ' + pat.cols + '×' + pat.rows + ' 格 · ' + pat.palette.length + ' 色 · ' +
+      fmt(pat.total) + ' 颗 · 大概要做 ' + timeText(pat.total), pad, pad + 38);
+
+    const top = pad + 62;
+    pat.palette.forEach((p, i) => {
+      const col = Math.floor(i / rows);
+      const row = i % rows;
+      const x = pad + col * colW;
+      const y = top + row * rowH;
+
+      ctx.fillStyle = p.hex;
+      ctx.fillRect(x, y - 12, 26, 26);
+      ctx.strokeStyle = 'rgba(0,0,0,.4)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x + 0.5, y - 11.5, 25, 25);
+
+      ctx.fillStyle = '#111';
+      ctx.font = '700 14px ui-monospace, Consolas, monospace';
+      ctx.fillText(p.code, x + 36, y);
+
+      ctx.textAlign = 'right';
+      ctx.fillStyle = '#111';
+      ctx.font = '700 14px ui-monospace, Consolas, monospace';
+      ctx.fillText(fmt(p.count) + ' 颗', x + colW - 20, y);
+      ctx.textAlign = 'left';
+    });
+
+    ctx.fillStyle = '#999';
+    ctx.font = '500 11px "PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.fillText('拼豆工坊 · ' + new Date().toLocaleDateString('zh-CN') + ' · 色号以实际购买品牌为准', pad, canvas.height - 18);
+
+    return canvas;
+  }
+
+  function openShopping() {
+    if (!state.pattern) { toast('先导入一张图片'); return; }
+    const pat = state.pattern;
+    const meta = currentPalette().name + ' · ' + pat.palette.length + ' 色 · ' + fmt(pat.total) + ' 颗';
+    $('shoppingMeta').textContent = meta + ' · 大概要做 ' + timeText(pat.total);
+    drawShopping($('shoppingCanvas'));
+    $('shoppingDialog').showModal();
+  }
+
+  /* ---------------- 保存 / 我的图纸 ---------------- */
+  const SAVES_KEY = 'pbg.saves.v1';
+
+  function loadSaves() {
+    try {
+      const raw = localStorage.getItem(SAVES_KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr : [];
+    } catch (e) { return []; }
+  }
+
+  function writeSaves(list) {
+    try {
+      localStorage.setItem(SAVES_KEY, JSON.stringify(list));
+      return true;
+    } catch (e) {
+      toast('保存失败：浏览器存储满了，先删几张旧的', 4000);
+      return false;
+    }
+  }
+
+  function downscale(canvas, max) {
+    const scale = Math.min(1, max / Math.max(canvas.width, canvas.height));
+    if (scale >= 1) return canvas;
+    const c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round(canvas.width * scale));
+    c.height = Math.max(1, Math.round(canvas.height * scale));
+    const ctx = c.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(canvas, 0, 0, c.width, c.height);
+    return c;
+  }
+
+  function openSaveDialog() {
+    if (!state.source) { toast('先导入一张图片'); return; }
+    const nm = (state.imgName || '').replace(/\.[^.]+$/, '');
+    $('saveName').value = nm && nm !== '未命名图片' ? nm : '';
+    $('saveDialog').showModal();
+    setTimeout(() => { try { $('saveName').focus(); } catch (e) { /* ignore */ } }, 60);
+  }
+
+  function doSave() {
+    const name = ($('saveName').value || '').trim() || '未命名图纸';
+    const small = downscale(state.sourceCanvas, 720);
+    const item = {
+      id: 'p' + Date.now().toString(36),
+      name,
+      at: Date.now(),
+      settings: JSON.parse(JSON.stringify(settings)),
+      thumb: makeThumb(state.sourceCanvas),
+      source: small.toDataURL('image/jpeg', 0.82)
+    };
+    const list = loadSaves();
+    list.unshift(item);
+    if (writeSaves(list.slice(0, 40))) {
+      $('saveDialog').close();
+      toast('已存到「我的图纸」');
+    }
+  }
+
+  function openSaves() {
+    const list = loadSaves();
+    const box = $('savesList');
+    box.innerHTML = '';
+    if (!list.length) {
+      box.innerHTML = '<p class="muted pad">还没有保存过图纸。点右上角「保存图纸」试试。</p>';
+    }
+    list.forEach((it) => {
+      const row = document.createElement('div');
+      row.className = 'save-item';
+      const s = it.settings || {};
+      const when = new Date(it.at).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      row.innerHTML =
+        (it.thumb ? '<img src="' + it.thumb + '" alt="">' : '<div class="ph"></div>') +
+        '<div class="meta"><b></b><span>' + when + ' · ' + (s.cols || '?') + ' 格 · ' + (s.paletteId || '') + '</span></div>' +
+        '<div class="acts"><button type="button" class="btn small">打开</button>' +
+        '<button type="button" class="btn small ghost">删除</button></div>';
+      row.querySelector('b').textContent = it.name;
+      row.querySelectorAll('button')[0].addEventListener('click', () => loadSave(it));
+      row.querySelectorAll('button')[1].addEventListener('click', () => {
+        const rest = loadSaves().filter((x) => x.id !== it.id);
+        writeSaves(rest);
+        openSaves();
+      });
+      box.appendChild(row);
+    });
+    $('savesDialog').showModal();
+  }
+
+  function loadSave(item) {
+    if (!item || !item.settings) return;
+    settings = Object.assign({}, DEFAULTS, item.settings, {
+      sheet: Object.assign({}, DEFAULTS.sheet, item.settings.sheet || {})
+    });
+    saveSettings();
+    populatePalettes();
+    applySettingsToUI();
+    $('savesDialog').close();
+    if (item.source) {
+      const img = new Image();
+      img.onload = () => { state.imgName = item.name; setSource(img, item.name); };
+      img.onerror = () => toast('这张图纸的原图读取失败');
+      img.src = item.source;
+    } else {
+      updateMask();
+    }
+  }
+
+  /* ---------------- 新手引导 ---------------- */
+  const GUIDE_KEY = 'pbg.guide.v1';
+
+  function showGuide(force) {
+    let seen = false;
+    try { seen = !!localStorage.getItem(GUIDE_KEY); } catch (e) { /* ignore */ }
+    if (!force && seen) return;
+    const dlg = $('guideDialog');
+    if (!dlg.open) dlg.showModal();
+  }
+
+  function closeGuide() {
+    try { localStorage.setItem(GUIDE_KEY, '1'); } catch (e) { /* ignore */ }
+    $('guideDialog').close();
+  }
+
+  /* ---------------- 旋转 / 镜像 ---------------- */
+  function transformSource(kind) {
+    if (!state.source) { toast('先导入一张图片'); return; }
+    const src = state.sourceCanvas;
+    const w = src.width;
+    const h = src.height;
+    const c = document.createElement('canvas');
+    const ctx = c.getContext('2d');
+    if (kind === 'rotate') {
+      c.width = h;
+      c.height = w;
+      ctx.translate(h, 0);
+      ctx.rotate(Math.PI / 2);
+    } else {
+      c.width = w;
+      c.height = h;
+      ctx.translate(w, 0);
+      ctx.scale(-1, 1);
+    }
+    ctx.drawImage(src, 0, 0);
+    setSource(c, state.imgName);
+    toast(kind === 'rotate' ? '已旋转 90°' : '已左右镜像');
+  }
+
+  /* ---------------- 色卡模板 ---------------- */
+  function downloadPaletteTemplate() {
+    const pal = currentPalette();
+    const lines = ['色号,名称,颜色'];
+    pal.colors.forEach((c) => {
+      lines.push(c.code + ',' + (c.name || '') + ',' + c.hex);
+    });
+    const blob = new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    EX.download(blob, '色卡模板-' + pal.name + '.csv');
+    toast('模板已下载：改成你手上豆子的颜色，再点「导入」传回来', 4000);
   }
 
   /* ---------------- 交互 ---------------- */
@@ -791,8 +1328,18 @@
     settings.boardRows = board;
     const boardLabel = $('chkBoard').parentNode.lastChild;
     if (boardLabel && boardLabel.nodeType === 3) {
-      boardLabel.textContent = ' 显示 ' + board + '×' + board + ' 拼豆板分界';
+      boardLabel.textContent = ' 标出拼豆板分界（一块 ' + board + '×' + board + '）';
     }
+
+    // 界面模式 / 简单色阶 / 导出面板
+    const uiMode = settings.uiMode === 'pro' ? 'pro' : 'simple';
+    document.body.setAttribute('data-mode', uiMode);
+    Array.from($('modeSwitch').children).forEach((b) => {
+      b.classList.toggle('on', b.getAttribute('data-mode') === uiMode);
+    });
+    syncSimpleColorUI();
+    $('sdFollow').checked = settings.sheet.follow !== false;
+    $('sdNumbersOn').checked = settings.sheet.numbers !== 'none';
   }
 
   function bindUI() {
@@ -820,15 +1367,131 @@
       $('imgThumb').style.backgroundImage = '';
       $('imgThumb').innerHTML = '<span>未选择</span>';
       $('imgName').textContent = '还没有导入图片';
-      $('imgInfo').textContent = '支持 JPG / PNG / WEBP / GIF（首帧），可直接 Ctrl+V 粘贴';
-      $('legendList').innerHTML = '<p class="muted pad">导入图片后这里会列出每种豆的色号与用量。</p>';
+      $('imgInfo').textContent = '支持 JPG / PNG / WEBP，可直接 Ctrl+V 粘贴';
+      $('legendList').innerHTML = '<p class="muted pad">导入图片后这里会列出每种豆要多少颗。</p>';
       $('statSize').textContent = $('statBeads').textContent = $('statColors').textContent = '—';
-      $('statBoards').textContent = $('statPhysical').textContent = '—';
+      $('statBoards').textContent = $('statPhysical').textContent = $('statTime').textContent = '—';
       $('stagePill').textContent = '未导入图片';
       $('legendCount').textContent = '';
       $('perfInfo').textContent = '';
+      $('simpleColorVal').textContent = '约 16 色';
       updateHoverbar();
     });
+
+    // 恢复默认
+    $('btnResetAll').addEventListener('click', () => {
+      if (!window.confirm('把所有参数恢复成默认值？（图片和已保存的图纸不受影响）')) return;
+      const ui = settings.uiMode;
+      settings = JSON.parse(JSON.stringify(DEFAULTS));
+      settings.uiMode = ui;
+      settings.replaceMap = {};
+      saveSettings();
+      populatePalettes();
+      applySettingsToUI();
+      updateMask();
+      toast('已恢复默认设置');
+    });
+
+    // 模式切换
+    Array.from($('modeSwitch').children).forEach((b) => {
+      b.addEventListener('click', () => setUIMode(b.getAttribute('data-mode')));
+    });
+
+    // 撤销 / 重做 / 帮助
+    $('btnUndo').addEventListener('click', undo);
+    $('btnRedo').addEventListener('click', redo);
+    $('btnHelp').addEventListener('click', () => showGuide(true));
+    $('btnGuideOk').addEventListener('click', closeGuide);
+    $('btnGuideDemo').addEventListener('click', () => { closeGuide(); loadDemo(); });
+    document.addEventListener('keydown', (e) => {
+      const tag = (e.target && e.target.tagName) || '';
+      if (/INPUT|TEXTAREA|SELECT/.test(tag)) return;
+      if (!(e.ctrlKey || e.metaKey)) return;
+      const k = (e.key || '').toLowerCase();
+      if (k === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); }
+      else if (k === 'y') { e.preventDefault(); redo(); }
+    });
+
+    // 简单模式：颜色精简程度
+    $('simpleColorRange').addEventListener('input', (e) => {
+      applySimpleLevel(parseInt(e.target.value, 10) || 0);
+    });
+    $('simpleColorNum').addEventListener('input', (e) => {
+      const v = parseInt(e.target.value, 10);
+      if (Number.isNaN(v)) return;
+      applySimpleLevel(clamp(v, 0, 100));
+    });
+
+    // 色卡对照图
+    $('btnPaletteChart').addEventListener('click', openChart);
+    $('btnChartClose').addEventListener('click', () => $('chartDialog').close());
+    $('btnChartDownload').addEventListener('click', () => {
+      const c = $('chartCanvas');
+      EX.canvasToBlob(c, 'image/png').then((b) => {
+        EX.download(b, '色卡对照-' + currentPalette().name + '.png');
+        toast('色卡图已保存');
+      });
+    });
+
+    // 换色
+    $('btnReplaceClose').addEventListener('click', () => $('replaceDialog').close());
+    $('btnReplaceReset').addEventListener('click', () => {
+      if (!replaceCode) { $('replaceDialog').close(); return; }
+      const map = Object.assign({}, settings.replaceMap || {});
+      delete map[replaceCode];
+      settings.replaceMap = map;
+      saveSettings();
+      $('replaceDialog').close();
+      rebuild();
+      toast('已恢复 ' + replaceCode + ' 的原色');
+    });
+    $('btnClearReplace').addEventListener('click', () => {
+      if (!Object.keys(settings.replaceMap || {}).length) return;
+      settings.replaceMap = {};
+      saveSettings();
+      rebuild();
+      toast('已清除所有换色');
+    });
+
+    // 购买清单
+    $('btnShopping').addEventListener('click', openShopping);
+    $('btnShoppingClose').addEventListener('click', () => $('shoppingDialog').close());
+    $('btnShoppingPng').addEventListener('click', () => {
+      const c = document.createElement('canvas');
+      if (!drawShopping(c)) return;
+      EX.canvasToBlob(c, 'image/png').then((b) => {
+        EX.download(b, '购买清单-' + new Date().toLocaleDateString('zh-CN').replace(/\//g, '-') + '.png');
+        toast('购买清单已保存');
+      });
+    });
+    $('btnShoppingPrint').addEventListener('click', () => {
+      const c = document.createElement('canvas');
+      if (!drawShopping(c)) return;
+      EX.printCanvases([c], '购买清单').then(() => toast('已发送到打印机'));
+    });
+
+    // 保存 / 我的图纸
+    $('btnProjectSave').addEventListener('click', openSaveDialog);
+    $('btnSaveCancel').addEventListener('click', () => $('saveDialog').close());
+    $('btnSaveOk').addEventListener('click', doSave);
+    $('btnProjectLoad').addEventListener('click', openSaves);
+    $('btnSavesClose').addEventListener('click', () => $('savesDialog').close());
+    $('btnExportFile').addEventListener('click', saveProject);
+    $('btnImportFile').addEventListener('click', () => $('projectInput').click());
+
+    // 旋转 / 镜像
+    $('btnRotate').addEventListener('click', () => transformSource('rotate'));
+    $('btnFlipH').addEventListener('click', () => transformSource('flipH'));
+
+    // 导出预设 / 分页导出
+    Array.from($('sdPresets').children).forEach((b) => {
+      b.addEventListener('click', () => {
+        applyExportPreset(b.getAttribute('data-preset'));
+        syncSheetUI();
+        updateSheetPreview();
+      });
+    });
+    $('btnSheetMulti').addEventListener('click', exportMulti);
 
     // 去背景
     $('chkRemoveBg').addEventListener('change', (e) => {
@@ -993,21 +1656,29 @@
       after: () => schedulePreview()
     });
 
-    // 鼠标悬停
+    // 鼠标悬停 / 手指点按（手机也能看色号）
     const pv = $('preview');
-    pv.addEventListener('mousemove', (e) => {
+    const pickAt = (e) => {
       const m = state.metrics;
       const pat = state.pattern;
-      if (!m || !pat) return;
+      if (!m || !pat) return false;
       const x = e.offsetX - m.originX;
       const y = e.offsetY - m.originY;
-      if (x < 0 || y < 0) { setHover(null); return; }
+      if (x < 0 || y < 0) { setHover(null); return false; }
       const c = Math.floor(x / m.cell);
       const r = Math.floor(y / m.cell);
-      if (c < 0 || c >= pat.cols || r < 0 || r >= pat.rows) { setHover(null); return; }
+      if (c < 0 || c >= pat.cols || r < 0 || r >= pat.rows) { setHover(null); return false; }
       setHover({ c, r });
-    });
+      return true;
+    };
+    pv.addEventListener('mousemove', pickAt);
     pv.addEventListener('mouseleave', () => setHover(null));
+    pv.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'mouse') return;
+      pickAt(e);
+      e.preventDefault();
+    });
+    pv.style.touchAction = 'manipulation';
 
     // 双击循环缩放：适应窗口 → 18 → 28 → 40
     pv.title = '双击切换缩放，放大后可以看到格子编号';
@@ -1095,12 +1766,13 @@
 
     // 导出
     $('btnCsv').addEventListener('click', () => {
-      if (!state.pattern) { toast('请先导入图片'); return; }
+      if (!state.pattern) { toast('先导入一张图片'); return; }
       const pat = state.pattern;
-      EX.exportCsv(pat, '拼豆配色表_' + pat.cols + 'x' + pat.rows + '_' + EX.timestamp() + '.csv', [
+      EX.exportCsv(pat, '拼豆配色表-' + pat.cols + 'x' + pat.rows + '-' + EX.timestamp() + '.csv', [
         ['格子', pat.cols + ' × ' + pat.rows],
         ['总豆数', pat.total],
         ['色卡', currentPalette().name],
+        ['大概要做', timeText(pat.total)],
         ['成品尺寸', (pat.cols * parseFloat(settings.beadSize) / 10).toFixed(1) + '×' +
           (pat.rows * parseFloat(settings.beadSize) / 10).toFixed(1) + ' cm']
       ]);
@@ -1113,7 +1785,7 @@
     // 图纸弹窗
     $('sheetDialog').addEventListener('close', () => { /* noop */ });
     $('btnSheetCancel').addEventListener('click', () => $('sheetDialog').close());
-    ['sdCell', 'sdStyle', 'sdNumbers', 'sdThick', 'sdSplit', 'sdArrange', 'sdPageCols', 'sdPageRows', 'sdOverlap', 'sdLegend', 'sdTint']
+    ['sdCell', 'sdStyle', 'sdNumbers', 'sdThick', 'sdSplit', 'sdArrange', 'sdPageCols', 'sdPageRows', 'sdOverlap', 'sdLegend', 'sdTint', 'sdFollow', 'sdNumbersOn']
       .forEach((id) => {
         $(id).addEventListener('input', () => { syncSheetUI(); updateSheetPreview(); });
         $(id).addEventListener('change', () => { syncSheetUI(); updateSheetPreview(); });
@@ -1121,9 +1793,8 @@
     $('btnSheetExport').addEventListener('click', () => exportSheet(true));
     $('btnSheetPrint').addEventListener('click', printSheet);
 
-    // 项目
-    $('btnProjectSave').addEventListener('click', saveProject);
-    $('btnProjectLoad').addEventListener('click', () => $('projectInput').click());
+    // 色卡导入 / 模板
+    $('btnPaletteTemplate').addEventListener('click', downloadPaletteTemplate);
     $('projectInput').addEventListener('change', (e) => {
       const f = e.target.files && e.target.files[0];
       e.target.value = '';
@@ -1162,7 +1833,8 @@
     return {
       cell,
       mode: colored ? 'beads' : 'chart',
-      numbers: style === 'beads' ? 'none' : sh.numbers,
+      // 彩色底可以不要编号；白底/数字表必须留编号，否则整张是空白格
+      numbers: ((style === 'plain' || style === 'chart') && sh.numbers === 'none') ? 'num' : sh.numbers,
       grid: true,
       thickEvery: sh.thick ? 5 : 0,
       frame: plain,
@@ -1189,11 +1861,41 @@
   }
 
   function fileName(pat) {
-    return '拼豆图纸_' + pat.cols + 'x' + pat.rows + '_' + pat.palette.length + '色_' + EX.timestamp() + '.png';
+    const d = new Date();
+    return '我的拼豆图纸-' + d.getFullYear() + '年' + (d.getMonth() + 1) + '月' + d.getDate() + '日.png';
+  }
+
+  const EXPORT_PRESETS = {
+    wechat: { cell: 14, split: false, pageCols: 29, pageRows: 29, overlap: 0 },
+    print: { cell: 24, split: true, pageCols: 29, pageRows: 29, overlap: 0 },
+    hd: { cell: 40, split: false, pageCols: 29, pageRows: 29, overlap: 0 }
+  };
+
+  function applyExportPreset(name) {
+    const p = EXPORT_PRESETS[name] || EXPORT_PRESETS.print;
+    const sh = settings.sheet;
+    sh.cell = p.cell;
+    sh.split = p.split;
+    sh.pageCols = p.pageCols;
+    sh.pageRows = p.pageRows;
+    sh.overlap = p.overlap;
+    sh.preset = name;
+    $('sdCell').value = String(sh.cell);
+    $('sdSplit').checked = sh.split;
+    $('sdPageCols').value = String(sh.pageCols);
+    $('sdPageRows').value = String(sh.pageRows);
+    $('sdOverlap').value = String(sh.overlap);
+    saveSettings();
+  }
+
+  function markPreset(name) {
+    Array.from($('sdPresets').children).forEach((b) => {
+      b.classList.toggle('on', b.getAttribute('data-preset') === name);
+    });
   }
 
   function exportSheet(fromDialog) {
-    if (!state.pattern) { toast('请先导入图片'); return; }
+    if (!state.pattern) { toast('先导入一张图片'); return; }
     if (fromDialog) syncSheetUI();
     const opts = sheetOptions();
     const canvas = document.createElement('canvas');
@@ -1211,18 +1913,47 @@
     }
     EX.exportPng(canvas, fileName(state.pattern))
       .then(() => {
-        toast('图纸已导出（' + L.width + ' × ' + L.height + ' px，' + L.totalPages + ' 页）', 3000);
+        toast('图纸已保存（' + L.width + ' × ' + L.height + ' px）', 3000);
         if (fromDialog) $('sheetDialog').close();
       })
       .catch((e) => toast('导出失败：' + e.message, 4000));
   }
 
+  /** 分页存成多张 PNG */
+  async function exportMulti() {
+    if (!state.pattern) { toast('先导入一张图片'); return; }
+    syncSheetUI();
+    const opts = sheetOptions();
+    if (!opts.split) {
+      toast('先在高级选项里勾选「按拼豆板分页」，才能分页导出', 3600);
+      return;
+    }
+    const L = R.sheetLayout(state.pattern, opts);
+    const base = fileName(state.pattern).replace(/\.png$/, '');
+    for (let i = 0; i < L.totalPages; i++) {
+      const c = document.createElement('canvas');
+      R.drawSheet(c, state.pattern, Object.assign({}, opts, { pageIndex: i, arrange: 'stack' }));
+      try {
+        const blob = await EX.canvasToBlob(c, 'image/png');
+        EX.download(blob, base + '-第' + (i + 1) + '页.png');
+      } catch (e) {
+        toast('第 ' + (i + 1) + ' 页导出失败：' + e.message);
+        return;
+      }
+      await new Promise((r) => setTimeout(r, 420));
+    }
+    toast('已导出 ' + L.totalPages + ' 张（浏览器可能会问是否允许下载多个文件）', 4000);
+  }
+
   function printSheet() {
-    if (!state.pattern) { toast('请先导入图片'); return; }
+    if (!state.pattern) { toast('先导入一张图片'); return; }
     const opts = sheetOptions();
     const L = R.sheetLayout(state.pattern, opts);
+    const pages = L.totalPages;
+    if (!window.confirm('会打印 ' + pages + ' 页（每页 ' + opts.pageCols + '×' + opts.pageRows +
+      ' 格）。\n打印对话框里选「另存为 PDF」就能存成 PDF 发给打印店。\n\n继续吗？')) return;
     const canvases = [];
-    for (let i = 0; i < L.totalPages; i++) {
+    for (let i = 0; i < pages; i++) {
       const c = document.createElement('canvas');
       R.drawSheet(c, state.pattern, Object.assign({}, opts, { pageIndex: i, arrange: 'stack' }));
       canvases.push(c);
@@ -1230,13 +1961,23 @@
     EX.printCanvases(canvases, '拼豆图纸').then(() => toast('已发送到打印机对话框')).catch((e) => toast('打印失败：' + e.message));
   }
 
+  function styleFromPreview() {
+    const m = settings.mode;
+    if (m === 'beads') return 'beads';
+    if (m === 'colorNum') return 'colorNum';
+    return 'chart';
+  }
+
   function openSheetDialog() {
-    if (!state.pattern) { toast('请先导入图片'); return; }
+    if (!state.pattern) { toast('先导入一张图片'); return; }
     const sh = settings.sheet;
+    if (sh.follow !== false) sh.style = styleFromPreview();
     $('sdCell').value = String(sh.cell);
     $('sdCellVal').textContent = sh.cell;
     $('sdStyle').value = sh.style || 'plain';
-    $('sdNumbers').value = sh.numbers;
+    $('sdNumbers').value = sh.numbers === 'none' ? 'num' : sh.numbers;
+    $('sdNumbersOn').checked = sh.numbers !== 'none';
+    $('sdFollow').checked = sh.follow !== false;
     $('sdThick').checked = !!sh.thick;
     $('sdSplit').checked = !!sh.split;
     $('sdArrange').value = sh.arrange === 'stack' ? 'stack' : 'grid';
@@ -1246,6 +1987,7 @@
     $('sdOverlapVal').textContent = sh.overlap;
     $('sdLegend').checked = !!sh.legend;
     $('sdTint').checked = !!sh.tint;
+    markPreset(sh.preset || 'print');
     syncSheetUI();
     $('sheetDialog').showModal();
     updateSheetPreview();
@@ -1253,9 +1995,10 @@
 
   function syncSheetUI() {
     const sh = settings.sheet;
+    sh.follow = $('sdFollow').checked;
     sh.cell = clamp(parseInt($('sdCell').value, 10) || 26, 10, 64);
-    sh.style = $('sdStyle').value;
-    sh.numbers = $('sdNumbers').value;
+    sh.style = sh.follow ? styleFromPreview() : $('sdStyle').value;
+    sh.numbers = $('sdNumbersOn').checked ? ($('sdNumbers').value === 'none' ? 'num' : $('sdNumbers').value) : 'none';
     sh.thick = $('sdThick').checked;
     sh.split = $('sdSplit').checked;
     sh.arrange = $('sdArrange').value === 'stack' ? 'stack' : 'grid';
@@ -1265,6 +2008,8 @@
     sh.legend = $('sdLegend').checked;
     sh.tint = $('sdTint').checked;
 
+    if (sh.follow) $('sdStyle').value = sh.style;
+    $('sdStyle').disabled = sh.follow;
     $('sdCellVal').textContent = sh.cell;
     $('sdOverlapVal').textContent = sh.overlap;
     const noOverlap = !sh.split || sh.arrange === 'grid';
@@ -1275,7 +2020,6 @@
     $('sdOverlap').parentNode.style.opacity = noOverlap ? '.45' : '';
     $('sdTint').disabled = sh.style !== 'chart';
     $('sdTint').parentNode.style.opacity = sh.style === 'chart' ? '' : '.45';
-    $('sdNumbers').disabled = sh.style === 'beads';
     saveSettings();
   }
 
@@ -1390,7 +2134,12 @@
     applySettingsToUI();
     bindUI();
     updateHoverbar();
+    updateHistButtons();
+    hist.last = snapshot();
+    setUIMode(settings.uiMode, true);
+    updateAdvice();
     handleHash();
+    setTimeout(() => showGuide(false), 400);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

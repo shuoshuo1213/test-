@@ -490,6 +490,199 @@ canvas#preview.hidden { display: none; }
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
+/* ---------------- 简单 / 专业模式 ---------------- */
+body[data-mode="simple"] .pro-only { display: none !important; }
+body[data-mode="pro"] .simple-only { display: none !important; }
+
+.mode-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  background: var(--bg-soft);
+  border: 1px solid var(--line-soft);
+  border-radius: 11px;
+}
+.mode-switch button {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  border-radius: 8px;
+  padding: 7px 8px;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.mode-switch button.on {
+  background: var(--panel-2);
+  color: var(--text);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .06) inset;
+}
+
+.card h2 .step {
+  display: inline-grid;
+  place-items: center;
+  width: 17px;
+  height: 17px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--accent-dim);
+  color: var(--accent-2);
+  font-size: 11px;
+  font-weight: 700;
+  vertical-align: 1px;
+}
+
+.btn.icon { padding: 6px 10px; line-height: 1; font-size: 15px; }
+.hint.tight { margin: 0 0 8px; }
+.hint code { font-size: 11px; }
+
+/* 高级折叠 */
+details.adv {
+  margin: 8px 0 4px;
+  border: 1px dashed var(--line);
+  border-radius: 9px;
+  padding: 6px 10px;
+}
+details.adv > summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--muted);
+  list-style: none;
+}
+details.adv > summary::-webkit-details-marker { display: none; }
+details.adv > summary::before { content: '▸ '; }
+details.adv[open] > summary::before { content: '▾ '; }
+details.adv[open] { padding-bottom: 4px; }
+details.adv .field { margin-top: 10px; }
+details.adv .hint { margin: 6px 0 2px; }
+
+/* 去背景对比缩略图 */
+.bg-preview {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.bg-preview figure { margin: 0; text-align: center; }
+.bg-preview canvas {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1/1;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background:
+    repeating-conic-gradient(#20262f 0 25%, #171d25 0 50%) 0 0/12px 12px;
+}
+.bg-preview figcaption { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+/* 导出预设 */
+.preset-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.preset {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: center;
+  padding: 9px 6px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--bg-soft);
+  color: var(--text);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.preset small { color: var(--muted); font-size: 10.5px; }
+.preset:hover { border-color: #3a4757; }
+.preset.on { border-color: var(--accent); background: var(--accent-dim); color: var(--accent-2); }
+
+/* 购买清单行 */
+.legend-item { grid-template-columns: 22px 34px 1fr auto auto; }
+.legend-item .swap {
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--muted);
+  border-radius: 7px;
+  padding: 1px 8px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.legend-item .swap:hover { color: var(--accent-2); border-color: var(--accent); }
+.legend-item .cnt strong { color: var(--text); font-size: 13px; }
+
+/* 色卡对照图 */
+.chart-wrap {
+  max-height: 60vh;
+  overflow: auto;
+  background: #0a0d12;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  padding: 10px;
+}
+.chart-wrap canvas { display: block; background: #fff; border-radius: 6px; max-width: 100%; height: auto; }
+
+/* 换色 */
+.replace-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px;
+  max-height: 52vh;
+  overflow: auto;
+  padding: 2px;
+}
+.replace-item {
+  border: 1px solid var(--line);
+  background: var(--bg-soft);
+  border-radius: 9px;
+  padding: 6px;
+  cursor: pointer;
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+}
+.replace-item:hover { border-color: var(--accent); }
+.replace-item .sw { width: 100%; height: 30px; border-radius: 6px; border: 1px solid rgba(0,0,0,.35); }
+.replace-item small { color: var(--muted); font-size: 10px; }
+.replace-item.cur { border-color: var(--accent-2); }
+
+/* 我的图纸 */
+.saves-list { display: flex; flex-direction: column; gap: 8px; max-height: 56vh; overflow: auto; }
+.save-item {
+  display: grid;
+  grid-template-columns: 54px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-soft);
+}
+.save-item img, .save-item .ph {
+  width: 54px; height: 54px; border-radius: 8px; object-fit: cover;
+  background: var(--panel-2); border: 1px solid var(--line);
+}
+.save-item .meta { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.save-item .meta b { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.save-item .meta span { font-size: 11px; color: var(--muted); }
+.save-item .acts { display: flex; gap: 6px; }
+
+/* 引导 */
+.guide-steps { margin: 4px 0 12px; padding-left: 20px; font-size: 13px; line-height: 1.9; }
+.guide-steps li { margin-bottom: 6px; }
+
+/* 购买清单画布 */
+.shopping-wrap {
+  background: #fff;
+  border-radius: 10px;
+  padding: 10px;
+  max-height: 58vh;
+  overflow: auto;
+}
+.shopping-wrap canvas { display: block; max-width: 100%; height: auto; }
+
 /* ---------------- 滚动条 ---------------- */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -540,163 +733,201 @@ canvas#preview.hidden { display: none; }
 }
 </style>
 </head>
-<body>
+<body data-mode="simple">
 
 <header class="topbar">
   <div class="brand">
     <span class="logo" aria-hidden="true"></span>
     <div class="brand-text">
       <h1>拼豆工坊</h1>
-      <p>图片 → 像素化 → 相近色合并 → 拼豆色卡映射 → 可打印图纸</p>
+      <p>选一张图，调两个滑块，得到能照着拼的图纸</p>
     </div>
   </div>
   <div class="top-actions">
     <button id="btnOpen" class="btn primary">导入图片</button>
     <button id="btnDemo" class="btn">示例图</button>
     <span class="sep"></span>
-    <button id="btnProjectSave" class="btn ghost">保存项目</button>
-    <button id="btnProjectLoad" class="btn ghost">载入项目</button>
+    <button id="btnUndo" class="btn icon" title="撤销（Ctrl+Z）" aria-label="撤销">↶</button>
+    <button id="btnRedo" class="btn icon" title="重做（Ctrl+Shift+Z）" aria-label="重做">↷</button>
+    <span class="sep"></span>
+    <button id="btnProjectSave" class="btn ghost">保存图纸</button>
+    <button id="btnProjectLoad" class="btn ghost">我的图纸</button>
     <button id="btnPrint" class="btn ghost">打印</button>
+    <button id="btnHelp" class="btn icon" title="怎么用" aria-label="怎么用">?</button>
   </div>
 </header>
 
 <main class="workspace">
 
-  <!-- ============ 左：参数 ============ -->
+  <!-- ============ 左：设置 ============ -->
   <aside class="panel left">
+    <div class="mode-switch" id="modeSwitch" role="tablist">
+      <button type="button" data-mode="simple" class="on">简单模式</button>
+      <button type="button" data-mode="pro">专业模式</button>
+    </div>
+
     <section class="card">
-      <h2>原图</h2>
+      <h2><span class="step">1</span> 选一张图</h2>
       <div class="thumb-row">
         <div class="thumb" id="imgThumb"><span>未选择</span></div>
         <div class="thumb-meta">
           <strong id="imgName">还没有导入图片</strong>
-          <span id="imgInfo">支持 JPG / PNG / WEBP / GIF（首帧），可直接 Ctrl+V 粘贴</span>
+          <span id="imgInfo">支持 JPG / PNG / WEBP，可直接 Ctrl+V 粘贴</span>
         </div>
       </div>
       <div class="row gap">
         <button class="btn small" id="btnOpen2">选择图片</button>
         <button class="btn small ghost" id="btnClear">清空</button>
+        <span class="grow"></span>
+        <button class="btn small ghost pro-only" id="btnRotate" title="顺时针旋转 90°">旋转</button>
+        <button class="btn small ghost pro-only" id="btnFlipH" title="左右镜像">镜像</button>
       </div>
 
       <div class="bg-box">
-        <label class="check"><input type="checkbox" id="chkRemoveBg"> 去除背景（只留主体）</label>
+        <label class="check"><input type="checkbox" id="chkRemoveBg"> 去掉背景（只留主体）</label>
         <div class="bg-opts" id="bgOpts" hidden>
-          <div class="field">
-            <label for="selBgMethod">抠图方式</label>
-            <select id="selBgMethod">
-              <option value="local">本地算法（离线 · 适合纯色/简单背景）</option>
-              <option value="rembg">rembg 服务（AI · 需本机启动）</option>
-            </select>
+          <div class="bg-preview">
+            <figure><canvas id="bgPreviewOrig"></canvas><figcaption>原图</figcaption></figure>
+            <figure><canvas id="bgPreviewMask"></canvas><figcaption>去背景后</figcaption></figure>
           </div>
           <div class="field" id="bgTolField">
-            <label for="bgTolNum">去背景强度</label>
+            <label for="bgTolNum">抠得狠不狠</label>
             <div class="slider-row">
               <input type="range" id="bgTolRange" min="0" max="100" value="40">
-              <input type="number" id="bgTolNum" class="num-input" min="0" max="100" step="1" value="40" inputmode="numeric" aria-label="去背景强度">
+              <input type="number" id="bgTolNum" class="num-input" min="0" max="100" step="1" value="40" inputmode="numeric" aria-label="抠得狠不狠">
             </div>
           </div>
-          <label class="check" id="bgKeepLargestRow"><input type="checkbox" id="chkKeepLargest" checked> 只保留最大主体（去掉零碎小块）</label>
-          <div class="field" id="bgUrlField" hidden>
-            <label for="bgUrl">rembg 服务地址</label>
-            <input type="text" id="bgUrl" value="http://127.0.0.1:7000" spellcheck="false" autocomplete="off">
-          </div>
+          <label class="check" id="bgKeepLargestRow"><input type="checkbox" id="chkKeepLargest" checked> 去掉零碎小块（只留最大的一块）</label>
           <p class="hint" id="bgHint"></p>
+          <details class="adv">
+            <summary>高级：换成 AI 抠图（需要装 Python）</summary>
+            <div class="field">
+              <label for="selBgMethod">抠图方式</label>
+              <select id="selBgMethod">
+                <option value="local">本地算法（离线，够用）</option>
+                <option value="rembg">rembg 服务（AI，需本机启动）</option>
+              </select>
+            </div>
+            <div class="field" id="bgUrlField" hidden>
+              <label for="bgUrl">rembg 服务地址</label>
+              <input type="text" id="bgUrl" value="http://127.0.0.1:7000" spellcheck="false" autocomplete="off">
+            </div>
+            <p class="hint">装法：<code>pip install rembg fastapi uvicorn python-multipart</code>，再运行 <code>python tools/rembg_server.py</code>。第一次会下载模型（约 176 MB），图片只在你自己电脑上处理。</p>
+          </details>
         </div>
       </div>
     </section>
 
     <section class="card">
-      <h2>图纸尺寸</h2>
+      <h2><span class="step">2</span> 图多大</h2>
       <div class="field">
-        <label for="colsNum">横向豆数</label>
+        <label for="colsNum">横向格子数</label>
         <div class="slider-row">
           <input type="range" id="colsRange" min="8" max="200" value="58">
-          <input type="number" id="colsNum" class="num-input" min="8" max="200" step="1" value="58" inputmode="numeric" aria-label="横向豆数">
+          <input type="number" id="colsNum" class="num-input" min="8" max="200" step="1" value="58" inputmode="numeric" aria-label="横向格子数">
         </div>
-      </div>
-      <div class="field">
-        <label for="rowsNum">纵向豆数</label>
-        <div class="slider-row">
-          <input type="range" id="rowsRange" min="8" max="200" value="58" disabled>
-          <input type="number" id="rowsNum" class="num-input" min="8" max="200" step="1" value="58" inputmode="numeric" aria-label="纵向豆数" disabled>
-        </div>
-      </div>
-      <label class="check"><input type="checkbox" id="chkAspect" checked> 锁定原图比例</label>
-      <div class="field mt8">
-        <label>豆子规格</label>
-        <select id="selBead">
-          <option value="2.6">2.6 mm（迷你）</option>
-          <option value="5" selected>5 mm（标准）</option>
-          <option value="10">10 mm（大号）</option>
-        </select>
       </div>
       <div class="chips" id="sizePresets">
-        <button class="chip" data-cols="29">29</button>
-        <button class="chip" data-cols="58">58</button>
-        <button class="chip" data-cols="87">87</button>
-        <button class="chip" data-cols="116">116</button>
+        <button class="chip" data-cols="29">29 一小块</button>
+        <button class="chip" data-cols="58">58 一块板</button>
+        <button class="chip" data-cols="87">87 四块板</button>
+        <button class="chip" data-cols="116">116 大图</button>
       </div>
-      <p class="hint">5 mm 豆：29 颗 = 14.5 cm，一块标准拼豆板刚好 29×29。</p>
+      <p class="hint" id="sizeHint">58 颗 ≈ 29 cm 见方，正好一块标准拼豆板</p>
+      <div class="pro-only">
+        <div class="field mt8">
+          <label for="rowsNum">纵向格子数</label>
+          <div class="slider-row">
+            <input type="range" id="rowsRange" min="8" max="200" value="58" disabled>
+            <input type="number" id="rowsNum" class="num-input" min="8" max="200" step="1" value="58" inputmode="numeric" aria-label="纵向格子数" disabled>
+          </div>
+        </div>
+        <label class="check"><input type="checkbox" id="chkAspect" checked> 锁定原图比例</label>
+        <div class="field mt8">
+          <label for="selBead">豆子多大</label>
+          <select id="selBead">
+            <option value="2.6">2.6 mm（迷你）</option>
+            <option value="5" selected>5 mm（标准）</option>
+            <option value="10">10 mm（大号）</option>
+          </select>
+        </div>
+      </div>
     </section>
 
     <section class="card">
-      <h2>配色</h2>
-      <div class="field">
-        <label>拼豆色卡</label>
-        <div class="row">
+      <h2><span class="step">3</span> 用几种颜色</h2>
+
+      <div class="simple-only">
+        <div class="field">
+          <label for="simpleColorNum">颜色精简程度 <b id="simpleColorVal">约 16 色</b></label>
+          <div class="slider-row">
+            <input type="range" id="simpleColorRange" min="0" max="100" value="33">
+            <input type="number" id="simpleColorNum" class="num-input" min="0" max="100" step="1" value="33" inputmode="numeric" aria-label="颜色精简程度">
+          </div>
+        </div>
+        <p class="hint" id="colorAdvice">往右拉 = 颜色更少、更好买豆；往左拉 = 更像原图</p>
+      </div>
+
+      <div class="pro-only">
+        <div class="field">
+          <label for="colorsNum">最多用几种颜色</label>
+          <div class="slider-row">
+            <input type="range" id="colorsRange" min="2" max="84" value="16">
+            <input type="number" id="colorsNum" class="num-input" min="2" max="84" step="1" value="16" inputmode="numeric" aria-label="最多用几种颜色">
+          </div>
+        </div>
+        <div class="field">
+          <label for="mergeRange">相似颜色合并 <b id="mergeVal">4</b></label>
+          <input type="range" id="mergeRange" min="0" max="24" value="4">
+          <p class="hint">数字越大，越多的“差不多”的颜色会被当成同一种豆。0 = 不合并。</p>
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label for="selDither">颜色混合</label>
+            <select id="selDither">
+              <option value="0">关闭（颜色更纯，推荐）</option>
+              <option value="1">轻度混合（更接近原图）</option>
+              <option value="2">强烈混合（会有点糊）</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="selBg">背景怎么处理</label>
+            <select id="selBg">
+              <option value="white">用白豆铺满</option>
+              <option value="black">用黑豆铺满</option>
+              <option value="none">不要背景（镂空）</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label for="brightRange">亮度 <b id="brightVal">0</b></label>
+          <input type="range" id="brightRange" min="-100" max="100" value="0">
+        </div>
+        <div class="field">
+          <label for="contrastRange">对比度 <b id="contrastVal">0</b></label>
+          <input type="range" id="contrastRange" min="-100" max="100" value="0">
+        </div>
+        <div class="field">
+          <label for="saturRange">鲜艳度 <b id="saturVal">0</b></label>
+          <input type="range" id="saturRange" min="-100" max="100" value="0">
+        </div>
+      </div>
+
+      <div class="field mt8">
+        <label for="selPalette">买的是哪个牌子的豆</label>
+        <div class="row gap">
           <select id="selPalette"></select>
           <button class="btn small ghost" id="btnPalette" title="导入自己的色卡">导入</button>
+          <button class="btn small ghost" id="btnPaletteChart" title="看色卡对照图">色卡图</button>
         </div>
-      </div>
-      <div class="field">
-        <label for="colorsNum">最多颜色数</label>
-        <div class="slider-row">
-          <input type="range" id="colorsRange" min="2" max="84" value="16">
-          <input type="number" id="colorsNum" class="num-input" min="2" max="84" step="1" value="16" inputmode="numeric" aria-label="最多颜色数">
-        </div>
-      </div>
-      <div class="field">
-        <label>相近色合并 <b id="mergeVal">4</b> <span class="muted">ΔE2000</span></label>
-        <input type="range" id="mergeRange" min="0" max="24" value="4">
-      </div>
-      <p class="hint">阈值越大，越多的相似色会被并成同一种豆；0 = 不合并。</p>
-      <div class="grid2">
-        <div class="field">
-          <label>抖动</label>
-          <select id="selDither">
-            <option value="0">关闭（推荐）</option>
-            <option value="1">弱抖动</option>
-            <option value="2">强抖动</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>透明区域</label>
-          <select id="selBg">
-            <option value="white">白底</option>
-            <option value="black">黑底</option>
-            <option value="none">留空（不排豆）</option>
-          </select>
-        </div>
-      </div>
-      <div class="field">
-        <label>亮度 <b id="brightVal">0</b></label>
-        <input type="range" id="brightRange" min="-100" max="100" value="0">
-      </div>
-      <div class="field">
-        <label>对比度 <b id="contrastVal">0</b></label>
-        <input type="range" id="contrastRange" min="-100" max="100" value="0">
-      </div>
-      <div class="field">
-        <label>饱和度 <b id="saturVal">0</b></label>
-        <input type="range" id="saturRange" min="-100" max="100" value="0">
       </div>
     </section>
 
-    <section class="card">
+    <section class="card pro-only">
       <h2>显示</h2>
       <div class="grid2">
         <div class="field">
-          <label>预览样式</label>
+          <label for="selMode">预览长什么样</label>
           <select id="selMode">
             <option value="beads">彩色豆</option>
             <option value="chart">白底图纸</option>
@@ -704,7 +935,7 @@ canvas#preview.hidden { display: none; }
           </select>
         </div>
         <div class="field">
-          <label>格子编号</label>
+          <label for="selNumbers">格子编号</label>
           <select id="selNumbers">
             <option value="num">数字</option>
             <option value="sym">符号</option>
@@ -712,10 +943,10 @@ canvas#preview.hidden { display: none; }
           </select>
         </div>
       </div>
-      <label class="check"><input type="checkbox" id="chkGrid" checked> 网格线</label>
-      <label class="check"><input type="checkbox" id="chkThick" checked> 每 5 格加粗</label>
-      <label class="check"><input type="checkbox" id="chkBoard"> 显示 29×29 拼豆板分界</label>
-      <label class="check"><input type="checkbox" id="chkRuler" checked> 坐标刻度</label>
+      <label class="check"><input type="checkbox" id="chkGrid" checked> 画网格线</label>
+      <label class="check"><input type="checkbox" id="chkThick" checked> 每 5 格加粗（方便数格子）</label>
+      <label class="check"><input type="checkbox" id="chkBoard"> 标出拼豆板分界（一块 29×29）</label>
+      <label class="check"><input type="checkbox" id="chkRuler" checked> 显示坐标刻度</label>
       <div class="field">
         <label for="zoomNum">格子大小 <span class="muted small">px · 空 = 自动</span></label>
         <div class="slider-row">
@@ -727,11 +958,12 @@ canvas#preview.hidden { display: none; }
 
     <section class="card">
       <h2>导出</h2>
-      <button class="btn block primary" id="btnSheetDialog">导出图纸（PNG / 打印）</button>
+      <button class="btn block primary" id="btnSheetDialog">导出图纸（含打印）</button>
       <div class="row gap mt8">
-        <button class="btn small" id="btnQuickPng">快速 PNG</button>
-        <button class="btn small" id="btnCsv">配色 CSV</button>
+        <button class="btn small" id="btnQuickPng">快速存图</button>
+        <button class="btn small" id="btnCsv">配色表 CSV</button>
       </div>
+      <button class="btn small ghost block mt8" id="btnResetAll">恢复默认设置</button>
     </section>
   </aside>
 
@@ -749,53 +981,153 @@ canvas#preview.hidden { display: none; }
     <div class="canvas-wrap" id="canvasWrap">
       <div class="empty" id="emptyState">
         <div class="empty-icon" aria-hidden="true"></div>
-        <p><strong>拖入一张图片</strong>，或点击「导入图片 / 示例图」</p>
-        <p class="muted">支持拖放、粘贴截图；所有计算都在本地浏览器完成，图片不会上传。</p>
+        <p><strong>拖一张图进来</strong>，或点右上角「导入图片 / 示例图」</p>
+        <p class="muted">手机上可以点格子看色号；所有计算都在你自己的设备里完成。</p>
       </div>
       <canvas id="preview"></canvas>
     </div>
     <div class="hoverbar" id="hoverbar">
-      <span class="muted">把鼠标放到图纸上，可查看坐标与色号</span>
+      <span class="muted">鼠标悬停或点一下格子，就能看到坐标和色号</span>
     </div>
   </section>
 
-  <!-- ============ 右：概览 + 色号表 ============ -->
+  <!-- ============ 右：概览 + 购买清单 ============ -->
   <aside class="panel right">
     <section class="card">
       <h2>概览</h2>
       <div class="stats">
         <div class="stat"><span>格子</span><b id="statSize">—</b></div>
         <div class="stat"><span>总豆数</span><b id="statBeads">—</b></div>
-        <div class="stat"><span>颜色数</span><b id="statColors">—</b></div>
+        <div class="stat"><span>颜色</span><b id="statColors">—</b></div>
         <div class="stat"><span>拼豆板</span><b id="statBoards">—</b></div>
         <div class="stat wide"><span>成品尺寸</span><b id="statPhysical">—</b></div>
+        <div class="stat wide"><span>大概要做</span><b id="statTime">—</b></div>
       </div>
     </section>
 
     <section class="card grow">
-      <h2>色号表 <span class="muted" id="legendCount"></span></h2>
+      <h2>购买清单 <span class="muted" id="legendCount"></span></h2>
+      <p class="hint tight">点一行＝只看这个颜色；「换」可以把缺货的颜色换成相近的。</p>
       <div class="legend-list" id="legendList">
-        <p class="muted pad">导入图片后这里会列出每种豆的色号与用量。</p>
+        <p class="muted pad">导入图片后这里会列出每种豆要多少颗。</p>
+      </div>
+      <div class="row gap mt8">
+        <button class="btn small" id="btnShopping">打印清单</button>
+        <button class="btn small ghost" id="btnClearReplace" title="取消所有手动换色">清除换色</button>
       </div>
     </section>
   </aside>
 </main>
 
+<!-- ============ 新手引导 ============ -->
+<dialog id="guideDialog" class="dialog">
+  <form method="dialog" class="dialog-body">
+    <h3>3 步就能出图纸</h3>
+    <ol class="guide-steps">
+      <li><b>选图</b>：右上角「导入图片」，或先点「示例图」试试。</li>
+      <li><b>调两个滑块</b>：「图多大」和「颜色精简程度」——其它参数都可以先不管。</li>
+      <li><b>导出</b>：点「导出图纸」，选「发微信 / 打印 / 高清」，存下来照着拼。</li>
+    </ol>
+    <p class="hint">右边会实时算出<b>总豆数</b>和<b>大概要做多久</b>；下面是<b>购买清单</b>，按色号买豆，点一行可以只看这个颜色。</p>
+    <p class="hint">熟练之后点左上角切到「专业模式」，能看到相似色合并、颜色混合、导出分页等全部参数。</p>
+    <div class="dialog-actions">
+      <button type="button" class="btn ghost" id="btnGuideDemo">先看看示例</button>
+      <span class="grow"></span>
+      <button type="button" class="btn primary" id="btnGuideOk">知道了</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ============ 色卡对照图 ============ -->
+<dialog id="chartDialog" class="dialog wide">
+  <form method="dialog" class="dialog-body">
+    <h3 id="chartTitle">色卡对照</h3>
+    <p class="hint">按色卡数据画出来的参考图，实际豆子会有批次色差，下单前请以实体色卡为准。</p>
+    <div class="chart-wrap"><canvas id="chartCanvas"></canvas></div>
+    <div class="dialog-actions">
+      <button type="button" class="btn ghost" id="btnChartDownload">存成图片</button>
+      <span class="grow"></span>
+      <button type="button" class="btn primary" id="btnChartClose">关闭</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ============ 换色 ============ -->
+<dialog id="replaceDialog" class="dialog">
+  <form method="dialog" class="dialog-body">
+    <h3>换一种豆</h3>
+    <p class="hint" id="replaceInfo">选一个相近的颜色替换过去。</p>
+    <div class="replace-grid" id="replaceGrid"></div>
+    <div class="dialog-actions">
+      <button type="button" class="btn ghost" id="btnReplaceReset">取消这个换色</button>
+      <span class="grow"></span>
+      <button type="button" class="btn" id="btnReplaceClose">关闭</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ============ 保存图纸 ============ -->
+<dialog id="saveDialog" class="dialog">
+  <form method="dialog" class="dialog-body">
+    <h3>保存这张图纸</h3>
+    <p class="hint">存在这个浏览器里，下次打开「我的图纸」就能继续改（换设备或清缓存就没了）。</p>
+    <div class="field">
+      <label for="saveName">给它起个名字</label>
+      <input type="text" id="saveName" placeholder="例如：小猫头像" autocomplete="off">
+    </div>
+    <div class="dialog-actions">
+      <span class="grow"></span>
+      <button type="button" class="btn ghost" id="btnSaveCancel">取消</button>
+      <button type="button" class="btn primary" id="btnSaveOk">保存</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ============ 我的图纸 ============ -->
+<dialog id="savesDialog" class="dialog">
+  <form method="dialog" class="dialog-body">
+    <h3>我的图纸</h3>
+    <div class="saves-list" id="savesList"></div>
+    <div class="dialog-actions">
+      <button type="button" class="btn ghost small" id="btnExportFile">导出成文件</button>
+      <button type="button" class="btn ghost small" id="btnImportFile">从文件导入</button>
+      <span class="grow"></span>
+      <button type="button" class="btn" id="btnSavesClose">关闭</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ============ 购买清单 ============ -->
+<dialog id="shoppingDialog" class="dialog">
+  <form method="dialog" class="dialog-body">
+    <h3>购买清单</h3>
+    <p class="hint" id="shoppingMeta">—</p>
+    <div class="shopping-wrap"><canvas id="shoppingCanvas"></canvas></div>
+    <div class="dialog-actions">
+      <button type="button" class="btn ghost" id="btnShoppingPng">存成图片</button>
+      <button type="button" class="btn ghost" id="btnShoppingPrint">打印</button>
+      <span class="grow"></span>
+      <button type="button" class="btn primary" id="btnShoppingClose">关闭</button>
+    </div>
+  </form>
+</dialog>
+
 <!-- ============ 导入色卡 ============ -->
 <dialog id="paletteDialog" class="dialog">
   <form method="dialog" class="dialog-body">
-    <h3>导入自定义色卡</h3>
-    <p class="hint">支持 JSON（<code>[{"code","name","hex"}]</code>）或 CSV（每行 <code>色号,名称,#RRGGBB</code>）。导入后保存在本机浏览器，不会上传。</p>
+    <h3>导入自己的色卡</h3>
+    <p class="hint">支持 CSV（每行 <code>色号,名称,#RRGGBB</code>）或 JSON。不会写？点「下载模板」，用 Excel 填完再传回来。</p>
     <div class="field">
-      <label>色卡名称</label>
+      <label for="paletteName">色卡名称</label>
       <input type="text" id="paletteName" placeholder="例如：我手上的 72 色" autocomplete="off">
     </div>
     <div class="field">
-      <label>粘贴内容</label>
-      <textarea id="paletteText" rows="10" spellcheck="false" placeholder="A1,纯白,#FFFFFF&#10;A2,米白,#F6F1E4"></textarea>
+      <label for="paletteText">粘贴内容</label>
+      <textarea id="paletteText" rows="8" spellcheck="false" placeholder="A1,纯白,#FFFFFF&#10;A2,米白,#F6F1E4"></textarea>
     </div>
     <div class="row gap">
       <button type="button" class="btn small ghost" id="btnPaletteFile">从文件读取…</button>
+      <button type="button" class="btn small ghost" id="btnPaletteTemplate">下载模板</button>
       <span class="muted small" id="paletteFileInfo">支持 .json / .csv / .txt</span>
     </div>
     <div class="dialog-actions">
@@ -814,61 +1146,77 @@ canvas#preview.hidden { display: none; }
     <div class="dialog-split">
       <div class="dialog-opts">
         <div class="field">
-          <label>每格像素 <b id="sdCellVal">26</b></label>
-          <input type="range" id="sdCell" min="12" max="48" value="26">
-        </div>
-        <div class="field">
-          <label>图纸样式</label>
-          <select id="sdStyle">
-            <option value="plain">数字表（简洁 · 黑框 + 底部用量）</option>
-            <option value="chart">白底图纸（带刻度 / 标题 / 配色表）</option>
-            <option value="beads">彩色底</option>
-            <option value="colorNum">彩色底 + 编号</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>格子编号</label>
-          <select id="sdNumbers">
-            <option value="num">数字</option>
-            <option value="sym">符号</option>
-            <option value="none">不显示</option>
-          </select>
-        </div>
-        <label class="check"><input type="checkbox" id="sdThick"> 每 5 格加粗辅助线</label>
-        <label class="check"><input type="checkbox" id="sdSplit"> 按拼豆板分页</label>
-        <div class="field">
-          <label>多页拼接</label>
-          <select id="sdArrange">
-            <option value="grid">按原图位置拼成一张</option>
-            <option value="stack">一页接一页竖排</option>
-          </select>
-        </div>
-        <div class="grid2">
-          <div class="field">
-            <label>每页列数</label>
-            <input type="number" id="sdPageCols" min="4" max="200" value="29">
-          </div>
-          <div class="field">
-            <label>每页行数</label>
-            <input type="number" id="sdPageRows" min="4" max="200" value="29">
+          <label>用在哪</label>
+          <div class="preset-row" id="sdPresets">
+            <button type="button" class="preset" data-preset="wechat">发微信<small>小图，手机能开</small></button>
+            <button type="button" class="preset on" data-preset="print">打印<small>A4 分页</small></button>
+            <button type="button" class="preset" data-preset="hd">高清<small>大图存档</small></button>
           </div>
         </div>
-        <div class="field">
-          <label>页面重叠格数 <b id="sdOverlapVal">1</b></label>
-          <input type="range" id="sdOverlap" min="0" max="5" value="1">
-        </div>
-        <label class="check"><input type="checkbox" id="sdLegend" checked> 附配色表</label>
-        <label class="check"><input type="checkbox" id="sdTint"> 用淡色提示格子颜色</label>
+        <label class="check"><input type="checkbox" id="sdNumbersOn" checked> 每格标上色号</label>
+        <p class="hint" id="sdDims">—</p>
         <p class="hint" id="sdInfo">—</p>
+
+        <details class="adv">
+          <summary>高级选项</summary>
+          <div class="field">
+            <label for="sdCell">每格像素 <b id="sdCellVal">26</b></label>
+            <input type="range" id="sdCell" min="12" max="48" value="26">
+          </div>
+          <div class="field">
+            <label for="sdStyle">图纸长什么样</label>
+            <select id="sdStyle">
+              <option value="plain">数字表（黑框 + 底部用量）</option>
+              <option value="chart">白底图纸（带刻度 / 标题 / 配色表）</option>
+              <option value="beads">彩色底</option>
+              <option value="colorNum">彩色底 + 编号</option>
+            </select>
+          </div>
+          <label class="check"><input type="checkbox" id="sdFollow" checked> 跟着预览样式走</label>
+          <div class="field">
+            <label for="sdNumbers">编号用</label>
+            <select id="sdNumbers">
+              <option value="num">数字</option>
+              <option value="sym">符号</option>
+              <option value="none">不显示</option>
+            </select>
+          </div>
+          <label class="check"><input type="checkbox" id="sdThick"> 每 5 格加粗辅助线</label>
+          <label class="check"><input type="checkbox" id="sdSplit"> 按拼豆板分页</label>
+          <div class="field">
+            <label for="sdArrange">多页拼接</label>
+            <select id="sdArrange">
+              <option value="grid">按原图位置拼成一张</option>
+              <option value="stack">一页接一页竖排</option>
+            </select>
+          </div>
+          <div class="grid2">
+            <div class="field">
+              <label for="sdPageCols">每页列数</label>
+              <input type="number" id="sdPageCols" min="4" max="200" value="29">
+            </div>
+            <div class="field">
+              <label for="sdPageRows">每页行数</label>
+              <input type="number" id="sdPageRows" min="4" max="200" value="29">
+            </div>
+          </div>
+          <div class="field">
+            <label for="sdOverlap">页面重叠格数 <b id="sdOverlapVal">0</b></label>
+            <input type="range" id="sdOverlap" min="0" max="5" value="0">
+          </div>
+          <label class="check"><input type="checkbox" id="sdLegend" checked> 附配色表</label>
+          <label class="check"><input type="checkbox" id="sdTint"> 用淡色提示格子颜色</label>
+        </details>
+
         <div class="dialog-actions">
           <button type="button" class="btn ghost" id="btnSheetCancel">关闭</button>
+          <button type="button" class="btn ghost" id="btnSheetMulti">分页存多张</button>
           <button type="button" class="btn" id="btnSheetPrint">打印</button>
           <button type="button" class="btn primary" id="btnSheetExport">导出 PNG</button>
         </div>
       </div>
       <div class="dialog-preview">
         <div class="sheet-preview-wrap"><canvas id="sdPreview"></canvas></div>
-        <p class="muted small center" id="sdDims"></p>
       </div>
     </div>
   </form>
@@ -3588,6 +3936,8 @@ canvas#preview.hidden { display: none; }
     beadSize: '5',
     boardCols: 29,
     boardRows: 29,
+    uiMode: 'simple',
+    replaceMap: {},
     removeBg: false,
     bgMethod: 'local',
     bgTolerance: 40,
@@ -3596,6 +3946,7 @@ canvas#preview.hidden { display: none; }
     sheet: {
       cell: 26,
       style: 'plain',
+      follow: true,
       numbers: 'num',
       thick: false,
       split: false,
@@ -3668,6 +4019,7 @@ canvas#preview.hidden { display: none; }
 
   function saveSettings() {
     try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) { /* ignore */ }
+    noteHistory();
   }
 
   /* ---------------- 色卡 ---------------- */
@@ -3794,6 +4146,13 @@ canvas#preview.hidden { display: none; }
       settings.rows = Math.max(2, Math.round(settings.cols / state.aspect));
       $('rowsRange').value = String(clamp(settings.rows, 8, 200));
     }
+    // 第一次导入时提醒可以换品牌
+    if (!settings.paletteAsked) {
+      settings.paletteAsked = true;
+      saveSettings();
+      setTimeout(() => toast('提示：在「用几种颜色」里可以选你买的豆子品牌，默认 MARD 221', 4200), 900);
+    }
+    updateAdvice();
     updateMask();
   }
 
@@ -4079,6 +4438,9 @@ canvas#preview.hidden { display: none; }
     state.pattern = pat;
     state.focus = -1;
     state.ms = dt;
+    if (state.pattern) {
+      try { applyReplacements(state.pattern); } catch (e) { console.warn(e); }
+    }
     $('rowsRange').value = String(clamp(pat.rows, 8, 200));
     // 正在输入时不要抢用户的文字
     if (document.activeElement !== $('rowsNum')) setNum('rowsNum', pat.rows);
@@ -4138,7 +4500,7 @@ canvas#preview.hidden { display: none; }
     const pat = state.pattern;
     const h = state.hover;
     if (!pat || !h) {
-      bar.innerHTML = '<span class="muted">把鼠标放到图纸上，可查看坐标与色号</span>';
+      bar.innerHTML = '<span class="muted">鼠标悬停或点一下格子，就能看到坐标和色号</span>';
       return;
     }
     const idx = pat.indices[h.r * pat.cols + h.c];
@@ -4170,6 +4532,18 @@ canvas#preview.hidden { display: none; }
     $('statBoards').textContent = boards + ' 块';
     $('statPhysical').textContent =
       (pat.cols * beadSize / 10).toFixed(1) + ' × ' + (pat.rows * beadSize / 10).toFixed(1) + ' cm';
+    $('statTime').textContent = timeText(pat.total);
+
+    // 简单模式的“实际几色”
+    $('simpleColorVal').textContent = '实际 ' + pat.palette.length + ' 色';
+  }
+
+  /** 3 秒一颗的粗略估算 */
+  function timeText(total) {
+    const sec = Math.max(0, total) * 3;
+    if (sec < 90) return '几分钟';
+    if (sec < 3600) return Math.round(sec / 60) + ' 分钟';
+    return (sec / 3600).toFixed(1) + ' 小时';
   }
 
   function renderLegend() {
@@ -4177,26 +4551,537 @@ canvas#preview.hidden { display: none; }
     const list = $('legendList');
     if (!pat) return;
     const total = pat.total || 1;
+    const replaced = Object.keys(settings.replaceMap || {});
 
     list.innerHTML = '';
     pat.palette.forEach((p, i) => {
-      const btn = document.createElement('button');
-      btn.className = 'legend-item' + (state.focus === i ? ' active' : '');
-      btn.type = 'button';
-      btn.title = p.code + (p.name ? ' ' + p.name : '') + ' ' + p.hex + ' · ' + p.count + ' 颗';
-      btn.innerHTML =
+      const row = document.createElement('div');
+      row.className = 'legend-item' + (state.focus === i ? ' active' : '');
+      row.title = p.code + (p.name ? ' ' + p.name : '') + ' ' + p.hex + ' · ' + p.count + ' 颗';
+      row.innerHTML =
         '<span class="sw" style="background:' + p.hex + '"></span>' +
         '<span class="num">' + (settings.numbers === 'sym' ? R.symbolFor(i) : '#' + (i + 1)) + '</span>' +
         '<span class="name">' + (p.name ? '<small>' + p.code + '</small>' + p.name : p.code) + '</span>' +
-        '<span class="cnt">' + fmt(p.count) + ' <span class="muted">' + (p.count / total * 100).toFixed(1) + '%</span></span>';
-      btn.addEventListener('click', () => {
+        '<span class="cnt"><strong>' + fmt(p.count) + '</strong></span>' +
+        '<button type="button" class="swap" title="换成相近的另一种豆">换</button>';
+
+      row.querySelector('.sw').addEventListener('click', (e) => {
+        e.stopPropagation();
         state.focus = state.focus === i ? -1 : i;
         renderPreview();
         renderLegend();
       });
-      list.appendChild(btn);
+      row.querySelector('.name').addEventListener('click', (e) => {
+        e.stopPropagation();
+        state.focus = state.focus === i ? -1 : i;
+        renderPreview();
+        renderLegend();
+      });
+      row.querySelector('.cnt').addEventListener('click', (e) => {
+        e.stopPropagation();
+        state.focus = state.focus === i ? -1 : i;
+        renderPreview();
+        renderLegend();
+      });
+      row.querySelector('.swap').addEventListener('click', (e) => {
+        e.stopPropagation();
+        openReplace(p.code);
+      });
+      list.appendChild(row);
     });
     $('legendCount').textContent = pat.palette.length + ' 种 · ' + fmt(pat.total) + ' 颗';
+    $('btnClearReplace').disabled = replaced.length === 0;
+    $('btnClearReplace').textContent = replaced.length ? '清除换色（' + replaced.length + '）' : '清除换色';
+  }
+
+  /* ---------------- 简单 / 专业模式 ---------------- */
+  function setUIMode(mode, silent) {
+    settings.uiMode = mode === 'pro' ? 'pro' : 'simple';
+    document.body.setAttribute('data-mode', settings.uiMode);
+    Array.from($('modeSwitch').children).forEach((b) => {
+      b.classList.toggle('on', b.getAttribute('data-mode') === settings.uiMode);
+    });
+    if (!silent) saveSettings();
+    if (state.pattern) renderPreview();
+  }
+
+  /* ---------------- 撤销 / 重做 ---------------- */
+  const hist = { undo: [], redo: [], last: '', timer: 0, quiet: false };
+
+  function snapshot() { return JSON.stringify(settings); }
+
+  function updateHistButtons() {
+    $('btnUndo').disabled = hist.undo.length === 0;
+    $('btnRedo').disabled = hist.redo.length === 0;
+  }
+
+  function noteHistory() {
+    if (hist.quiet) return;
+    clearTimeout(hist.timer);
+    hist.timer = setTimeout(pushHistory, 700);
+  }
+
+  function pushHistory() {
+    clearTimeout(hist.timer);
+    const cur = snapshot();
+    if (cur === hist.last) return false;
+    hist.undo.push(hist.last);
+    if (hist.undo.length > 60) hist.undo.shift();
+    hist.redo.length = 0;
+    hist.last = cur;
+    updateHistButtons();
+    return true;
+  }
+
+  function applySnapshot(snap) {
+    hist.quiet = true;
+    try { settings = JSON.parse(snap); } catch (e) { hist.quiet = false; return; }
+    applySettingsToUI();
+    hist.last = snap;
+    hist.quiet = false;
+    saveSettings();
+    updateHistButtons();
+    updateMask();
+  }
+
+  function undo() {
+    pushHistory();
+    if (!hist.undo.length) { toast('已经是最早的状态了'); return; }
+    hist.redo.push(snapshot());
+    applySnapshot(hist.undo.pop());
+    toast('已撤销');
+  }
+
+  function redo() {
+    if (!hist.redo.length) { toast('没有可以重做的了'); return; }
+    hist.undo.push(snapshot());
+    applySnapshot(hist.redo.pop());
+    toast('已重做');
+  }
+
+  /* ---------------- 简单模式：颜色精简程度 ---------------- */
+  function levelFromColors() {
+    const c = clamp(settings.maxColors | 0, 4, 24);
+    return clamp(Math.round((24 - c) * 5), 0, 100);
+  }
+
+  function colorsFromLevel(L) {
+    const c = clamp(Math.round(24 - L / 5), 4, 24);
+    const max = currentPalette().colors.length;
+    return Math.min(c, max);
+  }
+
+  function applySimpleLevel(L, silent) {
+    settings.maxColors = colorsFromLevel(L);
+    settings.mergeDeltaE = clamp(Math.round(L / 10), 0, 10);
+    $('simpleColorRange').value = String(L);
+    if (document.activeElement !== $('simpleColorNum')) setNum('simpleColorNum', L);
+    if (!silent) { saveSettings(); scheduleRebuild(); }
+  }
+
+  function syncSimpleColorUI() {
+    const L = levelFromColors();
+    $('simpleColorRange').value = String(L);
+    if (document.activeElement !== $('simpleColorNum')) setNum('simpleColorNum', L);
+  }
+
+  /** 分析这张图适合几种颜色 */
+  function updateAdvice() {
+    const el = $('colorAdvice');
+    if (!el) return;
+    if (!state.source) {
+      el.innerHTML = '往右拉 = 颜色更少、更好买豆；往左拉 = 更像原图';
+      return;
+    }
+    let rec = null;
+    try {
+      const rows = Math.max(8, Math.round(40 / (state.aspect || 1)));
+      const pat = P.buildPattern({
+        source: state.source,
+        cols: 40,
+        rows: Math.min(120, rows),
+        palette: currentPalette().colors,
+        maxColors: 24,
+        mergeDeltaE: 3,
+        dither: 0,
+        background: settings.background
+      });
+      const total = pat.total || 1;
+      const sig = pat.palette.filter((p) => p.count / total >= 0.02).length;
+      rec = clamp(sig + 1, 6, 24);
+    } catch (e) { rec = null; }
+    state.advice = rec;
+    el.innerHTML = rec
+      ? '这张图建议 <b>约 ' + rec + ' 色</b>：往右拉颜色更少、更好买豆，往左拉更像原图。'
+      : '往右拉 = 颜色更少、更好买豆；往左拉 = 更像原图';
+  }
+
+  /* ---------------- 换色（颜色替换） ---------------- */
+  let replaceCode = null;
+
+  function openReplace(code) {
+    const pal = currentPalette();
+    const cur = pal.colors.find((c) => c.code === code);
+    if (!cur || !state.pattern) return;
+    replaceCode = code;
+
+    const used = Object.keys(settings.replaceMap || {}).indexOf(code) >= 0;
+    $('replaceInfo').innerHTML = '现在用的是 <b>' + code + '</b>' + (used ? '（已经换过一次）' : '') +
+      '，下面是颜色最接近的几种豆：';
+
+    const grid = $('replaceGrid');
+    grid.innerHTML = '';
+    const here = C.rgbToLab(cur.r, cur.g, cur.b);
+    const cand = pal.colors
+      .filter((c) => c.code !== code)
+      .map((c) => ({ c, de: C.deltaE2000(here, C.rgbToLab(c.r, c.g, c.b)) }))
+      .sort((a, b) => a.de - b.de)
+      .slice(0, 36);
+
+    cand.forEach(({ c, de }) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'replace-item';
+      b.innerHTML = '<span class="sw" style="background:' + c.hex + '"></span>' +
+        '<b>' + c.code + '</b><small>差 ' + de.toFixed(1) + '</small>';
+      b.addEventListener('click', () => {
+        const map = Object.assign({}, settings.replaceMap || {});
+        map[code] = c.code;
+        settings.replaceMap = map;
+        saveSettings();
+        $('replaceDialog').close();
+        rebuild();
+        toast('已把 ' + code + ' 换成 ' + c.code);
+      });
+      grid.appendChild(b);
+    });
+
+    $('replaceDialog').showModal();
+  }
+
+  /** 把换色结果合并进图纸：同色号合并、按豆量重新编号 */
+  function applyReplacements(pat) {
+    const map = settings.replaceMap || {};
+    const keys = Object.keys(map);
+    if (!keys.length) return pat;
+    const pal = currentPalette().colors;
+    const byCode = new Map(pal.map((c) => [c.code, c]));
+
+    let changed = false;
+    const mapped = pat.palette.map((p) => {
+      const to = map[p.code];
+      if (!to) return p;
+      const t = byCode.get(to);
+      if (!t) return p;
+      changed = true;
+      return Object.assign({}, p, {
+        code: t.code, name: t.name || '', hex: t.hex, r: t.r, g: t.g, b: t.b
+      });
+    });
+    if (!changed) return pat;
+
+    const groups = new Map();
+    const merged = [];
+    const remap = new Int32Array(pat.palette.length).fill(-1);
+    mapped.forEach((p, i) => {
+      let gi = groups.get(p.code);
+      if (gi === undefined) {
+        gi = merged.length;
+        groups.set(p.code, gi);
+        merged.push({
+          code: p.code, name: p.name, hex: p.hex, r: p.r, g: p.g, b: p.b, count: 0
+        });
+      }
+      merged[gi].count += p.count;
+      remap[i] = gi;
+    });
+
+    const order = merged.map((_, i) => i).sort((a, b) => merged[b].count - merged[a].count);
+    const remap2 = new Int32Array(merged.length);
+    order.forEach((oldI, newI) => { remap2[oldI] = newI; });
+
+    const idx = pat.indices;
+    for (let i = 0; i < idx.length; i++) {
+      const v = idx[i];
+      if (v >= 0) idx[i] = remap2[remap[v]];
+    }
+
+    let total = 0;
+    pat.palette = order.map((oldI, newI) => {
+      const p = merged[oldI];
+      total += p.count;
+      return { index: newI, code: p.code, name: p.name, hex: p.hex, r: p.r, g: p.g, b: p.b, count: p.count };
+    });
+    pat.total = total;
+    return pat;
+  }
+
+  /* ---------------- 色卡对照图 ---------------- */
+  function openChart() {
+    const pal = currentPalette();
+    $('chartTitle').textContent = pal.name + ' · ' + pal.colors.length + ' 色';
+    drawChart($('chartCanvas'), pal.colors);
+    $('chartDialog').showModal();
+  }
+
+  function drawChart(canvas, colors) {
+    const cols = colors.length > 220 ? 20 : (colors.length > 100 ? 16 : 12);
+    const cw = 92;
+    const ch = 64;
+    const pad = 18;
+    const rows = Math.ceil(colors.length / cols);
+    canvas.width = pad * 2 + cols * cw;
+    canvas.height = pad + 34 + rows * ch + 16;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#111';
+    ctx.font = '700 16px "PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.fillText('色卡对照（参考色）', pad, pad + 8);
+
+    const top = pad + 26;
+    for (let i = 0; i < colors.length; i++) {
+      const c = colors[i];
+      const x = pad + (i % cols) * cw;
+      const y = top + Math.floor(i / cols) * ch;
+      ctx.fillStyle = c.hex;
+      ctx.fillRect(x + 2, y + 2, cw - 10, ch - 28);
+      ctx.strokeStyle = 'rgba(0,0,0,.35)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x + 2.5, y + 2.5, cw - 11, ch - 29);
+      ctx.fillStyle = '#222';
+      ctx.font = '700 12px ui-monospace, Consolas, monospace';
+      ctx.fillText(c.code, x + 5, y + ch - 10);
+    }
+  }
+
+  /* ---------------- 购买清单 ---------------- */
+  function drawShopping(canvas) {
+    const pat = state.pattern;
+    if (!pat) return null;
+    const pal = currentPalette();
+    const cols = pat.palette.length > 26 ? 3 : 2;
+    const rowH = 34;
+    const colW = 288;
+    const pad = 26;
+    const rows = Math.ceil(pat.palette.length / cols);
+    canvas.width = pad * 2 + cols * colW;
+    canvas.height = pad + 74 + rows * rowH + 30;
+
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left';
+
+    ctx.fillStyle = '#111';
+    ctx.font = '700 22px "PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.fillText('拼豆购买清单', pad, pad + 12);
+
+    ctx.fillStyle = '#555';
+    ctx.font = '500 13px "PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.fillText(pal.name + ' · ' + pat.cols + '×' + pat.rows + ' 格 · ' + pat.palette.length + ' 色 · ' +
+      fmt(pat.total) + ' 颗 · 大概要做 ' + timeText(pat.total), pad, pad + 38);
+
+    const top = pad + 62;
+    pat.palette.forEach((p, i) => {
+      const col = Math.floor(i / rows);
+      const row = i % rows;
+      const x = pad + col * colW;
+      const y = top + row * rowH;
+
+      ctx.fillStyle = p.hex;
+      ctx.fillRect(x, y - 12, 26, 26);
+      ctx.strokeStyle = 'rgba(0,0,0,.4)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x + 0.5, y - 11.5, 25, 25);
+
+      ctx.fillStyle = '#111';
+      ctx.font = '700 14px ui-monospace, Consolas, monospace';
+      ctx.fillText(p.code, x + 36, y);
+
+      ctx.textAlign = 'right';
+      ctx.fillStyle = '#111';
+      ctx.font = '700 14px ui-monospace, Consolas, monospace';
+      ctx.fillText(fmt(p.count) + ' 颗', x + colW - 20, y);
+      ctx.textAlign = 'left';
+    });
+
+    ctx.fillStyle = '#999';
+    ctx.font = '500 11px "PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.fillText('拼豆工坊 · ' + new Date().toLocaleDateString('zh-CN') + ' · 色号以实际购买品牌为准', pad, canvas.height - 18);
+
+    return canvas;
+  }
+
+  function openShopping() {
+    if (!state.pattern) { toast('先导入一张图片'); return; }
+    const pat = state.pattern;
+    const meta = currentPalette().name + ' · ' + pat.palette.length + ' 色 · ' + fmt(pat.total) + ' 颗';
+    $('shoppingMeta').textContent = meta + ' · 大概要做 ' + timeText(pat.total);
+    drawShopping($('shoppingCanvas'));
+    $('shoppingDialog').showModal();
+  }
+
+  /* ---------------- 保存 / 我的图纸 ---------------- */
+  const SAVES_KEY = 'pbg.saves.v1';
+
+  function loadSaves() {
+    try {
+      const raw = localStorage.getItem(SAVES_KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr : [];
+    } catch (e) { return []; }
+  }
+
+  function writeSaves(list) {
+    try {
+      localStorage.setItem(SAVES_KEY, JSON.stringify(list));
+      return true;
+    } catch (e) {
+      toast('保存失败：浏览器存储满了，先删几张旧的', 4000);
+      return false;
+    }
+  }
+
+  function downscale(canvas, max) {
+    const scale = Math.min(1, max / Math.max(canvas.width, canvas.height));
+    if (scale >= 1) return canvas;
+    const c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round(canvas.width * scale));
+    c.height = Math.max(1, Math.round(canvas.height * scale));
+    const ctx = c.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(canvas, 0, 0, c.width, c.height);
+    return c;
+  }
+
+  function openSaveDialog() {
+    if (!state.source) { toast('先导入一张图片'); return; }
+    const nm = (state.imgName || '').replace(/\.[^.]+$/, '');
+    $('saveName').value = nm && nm !== '未命名图片' ? nm : '';
+    $('saveDialog').showModal();
+    setTimeout(() => { try { $('saveName').focus(); } catch (e) { /* ignore */ } }, 60);
+  }
+
+  function doSave() {
+    const name = ($('saveName').value || '').trim() || '未命名图纸';
+    const small = downscale(state.sourceCanvas, 720);
+    const item = {
+      id: 'p' + Date.now().toString(36),
+      name,
+      at: Date.now(),
+      settings: JSON.parse(JSON.stringify(settings)),
+      thumb: makeThumb(state.sourceCanvas),
+      source: small.toDataURL('image/jpeg', 0.82)
+    };
+    const list = loadSaves();
+    list.unshift(item);
+    if (writeSaves(list.slice(0, 40))) {
+      $('saveDialog').close();
+      toast('已存到「我的图纸」');
+    }
+  }
+
+  function openSaves() {
+    const list = loadSaves();
+    const box = $('savesList');
+    box.innerHTML = '';
+    if (!list.length) {
+      box.innerHTML = '<p class="muted pad">还没有保存过图纸。点右上角「保存图纸」试试。</p>';
+    }
+    list.forEach((it) => {
+      const row = document.createElement('div');
+      row.className = 'save-item';
+      const s = it.settings || {};
+      const when = new Date(it.at).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      row.innerHTML =
+        (it.thumb ? '<img src="' + it.thumb + '" alt="">' : '<div class="ph"></div>') +
+        '<div class="meta"><b></b><span>' + when + ' · ' + (s.cols || '?') + ' 格 · ' + (s.paletteId || '') + '</span></div>' +
+        '<div class="acts"><button type="button" class="btn small">打开</button>' +
+        '<button type="button" class="btn small ghost">删除</button></div>';
+      row.querySelector('b').textContent = it.name;
+      row.querySelectorAll('button')[0].addEventListener('click', () => loadSave(it));
+      row.querySelectorAll('button')[1].addEventListener('click', () => {
+        const rest = loadSaves().filter((x) => x.id !== it.id);
+        writeSaves(rest);
+        openSaves();
+      });
+      box.appendChild(row);
+    });
+    $('savesDialog').showModal();
+  }
+
+  function loadSave(item) {
+    if (!item || !item.settings) return;
+    settings = Object.assign({}, DEFAULTS, item.settings, {
+      sheet: Object.assign({}, DEFAULTS.sheet, item.settings.sheet || {})
+    });
+    saveSettings();
+    populatePalettes();
+    applySettingsToUI();
+    $('savesDialog').close();
+    if (item.source) {
+      const img = new Image();
+      img.onload = () => { state.imgName = item.name; setSource(img, item.name); };
+      img.onerror = () => toast('这张图纸的原图读取失败');
+      img.src = item.source;
+    } else {
+      updateMask();
+    }
+  }
+
+  /* ---------------- 新手引导 ---------------- */
+  const GUIDE_KEY = 'pbg.guide.v1';
+
+  function showGuide(force) {
+    let seen = false;
+    try { seen = !!localStorage.getItem(GUIDE_KEY); } catch (e) { /* ignore */ }
+    if (!force && seen) return;
+    const dlg = $('guideDialog');
+    if (!dlg.open) dlg.showModal();
+  }
+
+  function closeGuide() {
+    try { localStorage.setItem(GUIDE_KEY, '1'); } catch (e) { /* ignore */ }
+    $('guideDialog').close();
+  }
+
+  /* ---------------- 旋转 / 镜像 ---------------- */
+  function transformSource(kind) {
+    if (!state.source) { toast('先导入一张图片'); return; }
+    const src = state.sourceCanvas;
+    const w = src.width;
+    const h = src.height;
+    const c = document.createElement('canvas');
+    const ctx = c.getContext('2d');
+    if (kind === 'rotate') {
+      c.width = h;
+      c.height = w;
+      ctx.translate(h, 0);
+      ctx.rotate(Math.PI / 2);
+    } else {
+      c.width = w;
+      c.height = h;
+      ctx.translate(w, 0);
+      ctx.scale(-1, 1);
+    }
+    ctx.drawImage(src, 0, 0);
+    setSource(c, state.imgName);
+    toast(kind === 'rotate' ? '已旋转 90°' : '已左右镜像');
+  }
+
+  /* ---------------- 色卡模板 ---------------- */
+  function downloadPaletteTemplate() {
+    const pal = currentPalette();
+    const lines = ['色号,名称,颜色'];
+    pal.colors.forEach((c) => {
+      lines.push(c.code + ',' + (c.name || '') + ',' + c.hex);
+    });
+    const blob = new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    EX.download(blob, '色卡模板-' + pal.name + '.csv');
+    toast('模板已下载：改成你手上豆子的颜色，再点「导入」传回来', 4000);
   }
 
   /* ---------------- 交互 ---------------- */
@@ -4339,8 +5224,18 @@ canvas#preview.hidden { display: none; }
     settings.boardRows = board;
     const boardLabel = $('chkBoard').parentNode.lastChild;
     if (boardLabel && boardLabel.nodeType === 3) {
-      boardLabel.textContent = ' 显示 ' + board + '×' + board + ' 拼豆板分界';
+      boardLabel.textContent = ' 标出拼豆板分界（一块 ' + board + '×' + board + '）';
     }
+
+    // 界面模式 / 简单色阶 / 导出面板
+    const uiMode = settings.uiMode === 'pro' ? 'pro' : 'simple';
+    document.body.setAttribute('data-mode', uiMode);
+    Array.from($('modeSwitch').children).forEach((b) => {
+      b.classList.toggle('on', b.getAttribute('data-mode') === uiMode);
+    });
+    syncSimpleColorUI();
+    $('sdFollow').checked = settings.sheet.follow !== false;
+    $('sdNumbersOn').checked = settings.sheet.numbers !== 'none';
   }
 
   function bindUI() {
@@ -4368,15 +5263,131 @@ canvas#preview.hidden { display: none; }
       $('imgThumb').style.backgroundImage = '';
       $('imgThumb').innerHTML = '<span>未选择</span>';
       $('imgName').textContent = '还没有导入图片';
-      $('imgInfo').textContent = '支持 JPG / PNG / WEBP / GIF（首帧），可直接 Ctrl+V 粘贴';
-      $('legendList').innerHTML = '<p class="muted pad">导入图片后这里会列出每种豆的色号与用量。</p>';
+      $('imgInfo').textContent = '支持 JPG / PNG / WEBP，可直接 Ctrl+V 粘贴';
+      $('legendList').innerHTML = '<p class="muted pad">导入图片后这里会列出每种豆要多少颗。</p>';
       $('statSize').textContent = $('statBeads').textContent = $('statColors').textContent = '—';
-      $('statBoards').textContent = $('statPhysical').textContent = '—';
+      $('statBoards').textContent = $('statPhysical').textContent = $('statTime').textContent = '—';
       $('stagePill').textContent = '未导入图片';
       $('legendCount').textContent = '';
       $('perfInfo').textContent = '';
+      $('simpleColorVal').textContent = '约 16 色';
       updateHoverbar();
     });
+
+    // 恢复默认
+    $('btnResetAll').addEventListener('click', () => {
+      if (!window.confirm('把所有参数恢复成默认值？（图片和已保存的图纸不受影响）')) return;
+      const ui = settings.uiMode;
+      settings = JSON.parse(JSON.stringify(DEFAULTS));
+      settings.uiMode = ui;
+      settings.replaceMap = {};
+      saveSettings();
+      populatePalettes();
+      applySettingsToUI();
+      updateMask();
+      toast('已恢复默认设置');
+    });
+
+    // 模式切换
+    Array.from($('modeSwitch').children).forEach((b) => {
+      b.addEventListener('click', () => setUIMode(b.getAttribute('data-mode')));
+    });
+
+    // 撤销 / 重做 / 帮助
+    $('btnUndo').addEventListener('click', undo);
+    $('btnRedo').addEventListener('click', redo);
+    $('btnHelp').addEventListener('click', () => showGuide(true));
+    $('btnGuideOk').addEventListener('click', closeGuide);
+    $('btnGuideDemo').addEventListener('click', () => { closeGuide(); loadDemo(); });
+    document.addEventListener('keydown', (e) => {
+      const tag = (e.target && e.target.tagName) || '';
+      if (/INPUT|TEXTAREA|SELECT/.test(tag)) return;
+      if (!(e.ctrlKey || e.metaKey)) return;
+      const k = (e.key || '').toLowerCase();
+      if (k === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); }
+      else if (k === 'y') { e.preventDefault(); redo(); }
+    });
+
+    // 简单模式：颜色精简程度
+    $('simpleColorRange').addEventListener('input', (e) => {
+      applySimpleLevel(parseInt(e.target.value, 10) || 0);
+    });
+    $('simpleColorNum').addEventListener('input', (e) => {
+      const v = parseInt(e.target.value, 10);
+      if (Number.isNaN(v)) return;
+      applySimpleLevel(clamp(v, 0, 100));
+    });
+
+    // 色卡对照图
+    $('btnPaletteChart').addEventListener('click', openChart);
+    $('btnChartClose').addEventListener('click', () => $('chartDialog').close());
+    $('btnChartDownload').addEventListener('click', () => {
+      const c = $('chartCanvas');
+      EX.canvasToBlob(c, 'image/png').then((b) => {
+        EX.download(b, '色卡对照-' + currentPalette().name + '.png');
+        toast('色卡图已保存');
+      });
+    });
+
+    // 换色
+    $('btnReplaceClose').addEventListener('click', () => $('replaceDialog').close());
+    $('btnReplaceReset').addEventListener('click', () => {
+      if (!replaceCode) { $('replaceDialog').close(); return; }
+      const map = Object.assign({}, settings.replaceMap || {});
+      delete map[replaceCode];
+      settings.replaceMap = map;
+      saveSettings();
+      $('replaceDialog').close();
+      rebuild();
+      toast('已恢复 ' + replaceCode + ' 的原色');
+    });
+    $('btnClearReplace').addEventListener('click', () => {
+      if (!Object.keys(settings.replaceMap || {}).length) return;
+      settings.replaceMap = {};
+      saveSettings();
+      rebuild();
+      toast('已清除所有换色');
+    });
+
+    // 购买清单
+    $('btnShopping').addEventListener('click', openShopping);
+    $('btnShoppingClose').addEventListener('click', () => $('shoppingDialog').close());
+    $('btnShoppingPng').addEventListener('click', () => {
+      const c = document.createElement('canvas');
+      if (!drawShopping(c)) return;
+      EX.canvasToBlob(c, 'image/png').then((b) => {
+        EX.download(b, '购买清单-' + new Date().toLocaleDateString('zh-CN').replace(/\//g, '-') + '.png');
+        toast('购买清单已保存');
+      });
+    });
+    $('btnShoppingPrint').addEventListener('click', () => {
+      const c = document.createElement('canvas');
+      if (!drawShopping(c)) return;
+      EX.printCanvases([c], '购买清单').then(() => toast('已发送到打印机'));
+    });
+
+    // 保存 / 我的图纸
+    $('btnProjectSave').addEventListener('click', openSaveDialog);
+    $('btnSaveCancel').addEventListener('click', () => $('saveDialog').close());
+    $('btnSaveOk').addEventListener('click', doSave);
+    $('btnProjectLoad').addEventListener('click', openSaves);
+    $('btnSavesClose').addEventListener('click', () => $('savesDialog').close());
+    $('btnExportFile').addEventListener('click', saveProject);
+    $('btnImportFile').addEventListener('click', () => $('projectInput').click());
+
+    // 旋转 / 镜像
+    $('btnRotate').addEventListener('click', () => transformSource('rotate'));
+    $('btnFlipH').addEventListener('click', () => transformSource('flipH'));
+
+    // 导出预设 / 分页导出
+    Array.from($('sdPresets').children).forEach((b) => {
+      b.addEventListener('click', () => {
+        applyExportPreset(b.getAttribute('data-preset'));
+        syncSheetUI();
+        updateSheetPreview();
+      });
+    });
+    $('btnSheetMulti').addEventListener('click', exportMulti);
 
     // 去背景
     $('chkRemoveBg').addEventListener('change', (e) => {
@@ -4541,21 +5552,29 @@ canvas#preview.hidden { display: none; }
       after: () => schedulePreview()
     });
 
-    // 鼠标悬停
+    // 鼠标悬停 / 手指点按（手机也能看色号）
     const pv = $('preview');
-    pv.addEventListener('mousemove', (e) => {
+    const pickAt = (e) => {
       const m = state.metrics;
       const pat = state.pattern;
-      if (!m || !pat) return;
+      if (!m || !pat) return false;
       const x = e.offsetX - m.originX;
       const y = e.offsetY - m.originY;
-      if (x < 0 || y < 0) { setHover(null); return; }
+      if (x < 0 || y < 0) { setHover(null); return false; }
       const c = Math.floor(x / m.cell);
       const r = Math.floor(y / m.cell);
-      if (c < 0 || c >= pat.cols || r < 0 || r >= pat.rows) { setHover(null); return; }
+      if (c < 0 || c >= pat.cols || r < 0 || r >= pat.rows) { setHover(null); return false; }
       setHover({ c, r });
-    });
+      return true;
+    };
+    pv.addEventListener('mousemove', pickAt);
     pv.addEventListener('mouseleave', () => setHover(null));
+    pv.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'mouse') return;
+      pickAt(e);
+      e.preventDefault();
+    });
+    pv.style.touchAction = 'manipulation';
 
     // 双击循环缩放：适应窗口 → 18 → 28 → 40
     pv.title = '双击切换缩放，放大后可以看到格子编号';
@@ -4643,12 +5662,13 @@ canvas#preview.hidden { display: none; }
 
     // 导出
     $('btnCsv').addEventListener('click', () => {
-      if (!state.pattern) { toast('请先导入图片'); return; }
+      if (!state.pattern) { toast('先导入一张图片'); return; }
       const pat = state.pattern;
-      EX.exportCsv(pat, '拼豆配色表_' + pat.cols + 'x' + pat.rows + '_' + EX.timestamp() + '.csv', [
+      EX.exportCsv(pat, '拼豆配色表-' + pat.cols + 'x' + pat.rows + '-' + EX.timestamp() + '.csv', [
         ['格子', pat.cols + ' × ' + pat.rows],
         ['总豆数', pat.total],
         ['色卡', currentPalette().name],
+        ['大概要做', timeText(pat.total)],
         ['成品尺寸', (pat.cols * parseFloat(settings.beadSize) / 10).toFixed(1) + '×' +
           (pat.rows * parseFloat(settings.beadSize) / 10).toFixed(1) + ' cm']
       ]);
@@ -4661,7 +5681,7 @@ canvas#preview.hidden { display: none; }
     // 图纸弹窗
     $('sheetDialog').addEventListener('close', () => { /* noop */ });
     $('btnSheetCancel').addEventListener('click', () => $('sheetDialog').close());
-    ['sdCell', 'sdStyle', 'sdNumbers', 'sdThick', 'sdSplit', 'sdArrange', 'sdPageCols', 'sdPageRows', 'sdOverlap', 'sdLegend', 'sdTint']
+    ['sdCell', 'sdStyle', 'sdNumbers', 'sdThick', 'sdSplit', 'sdArrange', 'sdPageCols', 'sdPageRows', 'sdOverlap', 'sdLegend', 'sdTint', 'sdFollow', 'sdNumbersOn']
       .forEach((id) => {
         $(id).addEventListener('input', () => { syncSheetUI(); updateSheetPreview(); });
         $(id).addEventListener('change', () => { syncSheetUI(); updateSheetPreview(); });
@@ -4669,9 +5689,8 @@ canvas#preview.hidden { display: none; }
     $('btnSheetExport').addEventListener('click', () => exportSheet(true));
     $('btnSheetPrint').addEventListener('click', printSheet);
 
-    // 项目
-    $('btnProjectSave').addEventListener('click', saveProject);
-    $('btnProjectLoad').addEventListener('click', () => $('projectInput').click());
+    // 色卡导入 / 模板
+    $('btnPaletteTemplate').addEventListener('click', downloadPaletteTemplate);
     $('projectInput').addEventListener('change', (e) => {
       const f = e.target.files && e.target.files[0];
       e.target.value = '';
@@ -4710,7 +5729,8 @@ canvas#preview.hidden { display: none; }
     return {
       cell,
       mode: colored ? 'beads' : 'chart',
-      numbers: style === 'beads' ? 'none' : sh.numbers,
+      // 彩色底可以不要编号；白底/数字表必须留编号，否则整张是空白格
+      numbers: ((style === 'plain' || style === 'chart') && sh.numbers === 'none') ? 'num' : sh.numbers,
       grid: true,
       thickEvery: sh.thick ? 5 : 0,
       frame: plain,
@@ -4737,11 +5757,41 @@ canvas#preview.hidden { display: none; }
   }
 
   function fileName(pat) {
-    return '拼豆图纸_' + pat.cols + 'x' + pat.rows + '_' + pat.palette.length + '色_' + EX.timestamp() + '.png';
+    const d = new Date();
+    return '我的拼豆图纸-' + d.getFullYear() + '年' + (d.getMonth() + 1) + '月' + d.getDate() + '日.png';
+  }
+
+  const EXPORT_PRESETS = {
+    wechat: { cell: 14, split: false, pageCols: 29, pageRows: 29, overlap: 0 },
+    print: { cell: 24, split: true, pageCols: 29, pageRows: 29, overlap: 0 },
+    hd: { cell: 40, split: false, pageCols: 29, pageRows: 29, overlap: 0 }
+  };
+
+  function applyExportPreset(name) {
+    const p = EXPORT_PRESETS[name] || EXPORT_PRESETS.print;
+    const sh = settings.sheet;
+    sh.cell = p.cell;
+    sh.split = p.split;
+    sh.pageCols = p.pageCols;
+    sh.pageRows = p.pageRows;
+    sh.overlap = p.overlap;
+    sh.preset = name;
+    $('sdCell').value = String(sh.cell);
+    $('sdSplit').checked = sh.split;
+    $('sdPageCols').value = String(sh.pageCols);
+    $('sdPageRows').value = String(sh.pageRows);
+    $('sdOverlap').value = String(sh.overlap);
+    saveSettings();
+  }
+
+  function markPreset(name) {
+    Array.from($('sdPresets').children).forEach((b) => {
+      b.classList.toggle('on', b.getAttribute('data-preset') === name);
+    });
   }
 
   function exportSheet(fromDialog) {
-    if (!state.pattern) { toast('请先导入图片'); return; }
+    if (!state.pattern) { toast('先导入一张图片'); return; }
     if (fromDialog) syncSheetUI();
     const opts = sheetOptions();
     const canvas = document.createElement('canvas');
@@ -4759,18 +5809,47 @@ canvas#preview.hidden { display: none; }
     }
     EX.exportPng(canvas, fileName(state.pattern))
       .then(() => {
-        toast('图纸已导出（' + L.width + ' × ' + L.height + ' px，' + L.totalPages + ' 页）', 3000);
+        toast('图纸已保存（' + L.width + ' × ' + L.height + ' px）', 3000);
         if (fromDialog) $('sheetDialog').close();
       })
       .catch((e) => toast('导出失败：' + e.message, 4000));
   }
 
+  /** 分页存成多张 PNG */
+  async function exportMulti() {
+    if (!state.pattern) { toast('先导入一张图片'); return; }
+    syncSheetUI();
+    const opts = sheetOptions();
+    if (!opts.split) {
+      toast('先在高级选项里勾选「按拼豆板分页」，才能分页导出', 3600);
+      return;
+    }
+    const L = R.sheetLayout(state.pattern, opts);
+    const base = fileName(state.pattern).replace(/\.png$/, '');
+    for (let i = 0; i < L.totalPages; i++) {
+      const c = document.createElement('canvas');
+      R.drawSheet(c, state.pattern, Object.assign({}, opts, { pageIndex: i, arrange: 'stack' }));
+      try {
+        const blob = await EX.canvasToBlob(c, 'image/png');
+        EX.download(blob, base + '-第' + (i + 1) + '页.png');
+      } catch (e) {
+        toast('第 ' + (i + 1) + ' 页导出失败：' + e.message);
+        return;
+      }
+      await new Promise((r) => setTimeout(r, 420));
+    }
+    toast('已导出 ' + L.totalPages + ' 张（浏览器可能会问是否允许下载多个文件）', 4000);
+  }
+
   function printSheet() {
-    if (!state.pattern) { toast('请先导入图片'); return; }
+    if (!state.pattern) { toast('先导入一张图片'); return; }
     const opts = sheetOptions();
     const L = R.sheetLayout(state.pattern, opts);
+    const pages = L.totalPages;
+    if (!window.confirm('会打印 ' + pages + ' 页（每页 ' + opts.pageCols + '×' + opts.pageRows +
+      ' 格）。\n打印对话框里选「另存为 PDF」就能存成 PDF 发给打印店。\n\n继续吗？')) return;
     const canvases = [];
-    for (let i = 0; i < L.totalPages; i++) {
+    for (let i = 0; i < pages; i++) {
       const c = document.createElement('canvas');
       R.drawSheet(c, state.pattern, Object.assign({}, opts, { pageIndex: i, arrange: 'stack' }));
       canvases.push(c);
@@ -4778,13 +5857,23 @@ canvas#preview.hidden { display: none; }
     EX.printCanvases(canvases, '拼豆图纸').then(() => toast('已发送到打印机对话框')).catch((e) => toast('打印失败：' + e.message));
   }
 
+  function styleFromPreview() {
+    const m = settings.mode;
+    if (m === 'beads') return 'beads';
+    if (m === 'colorNum') return 'colorNum';
+    return 'chart';
+  }
+
   function openSheetDialog() {
-    if (!state.pattern) { toast('请先导入图片'); return; }
+    if (!state.pattern) { toast('先导入一张图片'); return; }
     const sh = settings.sheet;
+    if (sh.follow !== false) sh.style = styleFromPreview();
     $('sdCell').value = String(sh.cell);
     $('sdCellVal').textContent = sh.cell;
     $('sdStyle').value = sh.style || 'plain';
-    $('sdNumbers').value = sh.numbers;
+    $('sdNumbers').value = sh.numbers === 'none' ? 'num' : sh.numbers;
+    $('sdNumbersOn').checked = sh.numbers !== 'none';
+    $('sdFollow').checked = sh.follow !== false;
     $('sdThick').checked = !!sh.thick;
     $('sdSplit').checked = !!sh.split;
     $('sdArrange').value = sh.arrange === 'stack' ? 'stack' : 'grid';
@@ -4794,6 +5883,7 @@ canvas#preview.hidden { display: none; }
     $('sdOverlapVal').textContent = sh.overlap;
     $('sdLegend').checked = !!sh.legend;
     $('sdTint').checked = !!sh.tint;
+    markPreset(sh.preset || 'print');
     syncSheetUI();
     $('sheetDialog').showModal();
     updateSheetPreview();
@@ -4801,9 +5891,10 @@ canvas#preview.hidden { display: none; }
 
   function syncSheetUI() {
     const sh = settings.sheet;
+    sh.follow = $('sdFollow').checked;
     sh.cell = clamp(parseInt($('sdCell').value, 10) || 26, 10, 64);
-    sh.style = $('sdStyle').value;
-    sh.numbers = $('sdNumbers').value;
+    sh.style = sh.follow ? styleFromPreview() : $('sdStyle').value;
+    sh.numbers = $('sdNumbersOn').checked ? ($('sdNumbers').value === 'none' ? 'num' : $('sdNumbers').value) : 'none';
     sh.thick = $('sdThick').checked;
     sh.split = $('sdSplit').checked;
     sh.arrange = $('sdArrange').value === 'stack' ? 'stack' : 'grid';
@@ -4813,6 +5904,8 @@ canvas#preview.hidden { display: none; }
     sh.legend = $('sdLegend').checked;
     sh.tint = $('sdTint').checked;
 
+    if (sh.follow) $('sdStyle').value = sh.style;
+    $('sdStyle').disabled = sh.follow;
     $('sdCellVal').textContent = sh.cell;
     $('sdOverlapVal').textContent = sh.overlap;
     const noOverlap = !sh.split || sh.arrange === 'grid';
@@ -4823,7 +5916,6 @@ canvas#preview.hidden { display: none; }
     $('sdOverlap').parentNode.style.opacity = noOverlap ? '.45' : '';
     $('sdTint').disabled = sh.style !== 'chart';
     $('sdTint').parentNode.style.opacity = sh.style === 'chart' ? '' : '.45';
-    $('sdNumbers').disabled = sh.style === 'beads';
     saveSettings();
   }
 
@@ -4938,7 +6030,12 @@ canvas#preview.hidden { display: none; }
     applySettingsToUI();
     bindUI();
     updateHoverbar();
+    updateHistButtons();
+    hist.last = snapshot();
+    setUIMode(settings.uiMode, true);
+    updateAdvice();
     handleHash();
+    setTimeout(() => showGuide(false), 400);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
